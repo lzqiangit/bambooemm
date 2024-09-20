@@ -1,9 +1,14 @@
 #include <iostream>
-#include "utils/LoadKV.cpp"
+#include "utils.h"
+#include "kv.h"
 
 using namespace std;
 
 int main() {
-    cout << "SUCCESS" << endl;
+    cout << "STAR" << endl;
+    kv* kvList;
+    int len = LoadKVList(kvList);
+    cout << "读取记录长度：" << endl;
+    cout << "RRRRRRRRRRRUNING" << endl;
     return 0; 
 }

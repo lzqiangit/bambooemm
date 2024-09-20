@@ -1,13 +1,11 @@
+#include "utils.h"
 #include <iostream>
 #include <string>
 #include <mysql/mysql.h>
 #include <vector>
-#include "bamboofilter/predefine.h"
-
 using namespace std;
 
-
-void LoadKV(vector<KV> kvList, int &size) {
+int LoadKVList(kv* kvList) {
 
     cout << "RUN SUCCESS!" << endl;
     MYSQL *con = NULL;
@@ -17,7 +15,7 @@ void LoadKV(vector<KV> kvList, int &size) {
     {
         cout << "初始化失败";
     }
-    string url = "192.168.40.1";    //主机地址
+    string url = "10.162.212.231";    //主机地址
     unsigned int Port = 3306;   //数据库端口号
     string User = "root";   //登陆数据库用户名
     string PassWord = "0000";  //登陆数据库密码
@@ -29,6 +27,7 @@ void LoadKV(vector<KV> kvList, int &size) {
     {
         cout << "连接数据库失败";
     }
+    cout << "Connect Database Success" << endl;
     //执行sql语句，如果查询成功，mysql_query()函数会返回0；否则，返回非零值表示发生错误。
     mysql_query(con, "select * from KV_LIST_10_5");
 
@@ -65,5 +64,5 @@ void LoadKV(vector<KV> kvList, int &size) {
 
     mysql_free_result(res);
     mysql_close(con);
+    return nums;
 }
-

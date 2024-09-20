@@ -5,6 +5,7 @@ target_include_directories(header INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 add_library(hash STATIC "common/BOBHash.cpp")
 target_link_libraries(hash PUBLIC header)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/client/KV.hpp)
-aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/utils UTILSSRC)
-add_library(utils STATIC ${UTILSSRC})
+add_library(utils STATIC "common/utils.cpp")
+target_include_directories(utils PUBLIC ${HEADPATH})
+target_link_libraries(utils PUBLIC header mysqlclient)      # ÐèÒªÁ´½Ó  mysqlclient
+
