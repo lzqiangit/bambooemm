@@ -1,14 +1,18 @@
 #include <iostream>
-#include "utils.h"
-#include "kv.h"
+#include "utils.hpp"
+#include <vector>
 
 using namespace std;
 
 int main() {
-    cout << "STAR" << endl;
-    kv* kvList;
-    int len = LoadKVList(kvList);
-    cout << "读取记录长度：" << endl;
-    cout << "RRRRRRRRRRRUNING" << endl;
+
+    vector<KV *> kvList = LoadKVList();
+    // for (KV kv : kvList) {
+    //     cout << kv.key << "|" << kv.value << "|" << kv.counter << endl;
+    // }
+    // for (int i=0; i<kvList.size(); i++) {
+    //     KV kv = kvList[i];
+    //     cout << kv.key << "|" << kv.value << "|" << kv.counter << endl;
+    // }
     return 0; 
 }
