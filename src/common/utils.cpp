@@ -2,7 +2,8 @@
 #include <iostream>
 #include <string>
 #include <mysql/mysql.h>
-#include<algorithm>
+#include <algorithm>
+#include <string.h>
 using namespace std;
 
 vector<KV *> LoadKVList() {
@@ -12,9 +13,9 @@ vector<KV *> LoadKVList() {
     {
         cout << "Init Connect ERROR" << endl;;
     }
-    string url = "192.168.248.137";    //主机地址
+    string url = "localhost";    //主机地址
     unsigned int Port = 3306;   //数据库端口号
-    string User = "root";   //登陆数据库用户名
+    string User = "lzq";   //登陆数据库用户名
     string PassWord = "0000";  //登陆数据库密码
     string DBName = "kvlist"; //使用数据库名
     //链接数据库
@@ -26,7 +27,7 @@ vector<KV *> LoadKVList() {
     }
 
     //执行sql语句，如果查询成功，mysql_query()函数会返回0；否则，返回非零值表示发生错误。
-    mysql_query(con, "select * from KV_LIST_10_5");
+    mysql_query(con, "select * from kv_list_10_5");
 
     MYSQL_RES *res;
     MYSQL_ROW row;
@@ -40,26 +41,16 @@ vector<KV *> LoadKVList() {
     nums = mysql_num_fields(res);  //属于表结构的获取
 
     MYSQL_FIELD * fields;
-    // fields = mysql_fetch_fields(res);  //属于表结构的获取
-    // for(int i = 0; i < nums ; i++)
-    // {
-    //     cout<<fields[i].name<<"|";
-    // }
-    // cout<<endl;
     vector<KV *> kvList;
     while( (row = mysql_fetch_row(res)) != nullptr)  //mysql_fetch_row()函数从指定的结果集中获取一行数据返回给row，是数组的形式，即row内部是字符串数组指针（二级指针）
     {
-        KV *kv = new KV(row[0], row[1], stoi(string(row[2])));
-        //cout << kv->key << "|" << kv->value << "|" << kv->counter << endl;
+        char *key = new char[(strlen(row[0]) + 1)];
+        char *value = new char[(strlen(row[1]) + 1)];
+        strcpy(key, row[0]);
+        strcpy(value, row[1]);
+        KV *kv = new KV(key, value, stoi(string(row[2])));
         kvList.push_back(kv);
     }
-
-
-
-    for(vector<KV *>::iterator it = kvList.begin(); it!=kvList.end(); it++){
-        cout << (*it)->key << "|" << (*it)->value << "|" << (*it)->counter << "|"  << endl;
-    }
-
     mysql_free_result(res);
     mysql_close(con);
     return kvList;
