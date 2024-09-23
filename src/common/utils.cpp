@@ -55,3 +55,31 @@ vector<KV *> LoadKVList() {
     mysql_close(con);
     return kvList;
 }
+
+unsigned char* AESGen(int keyLength) {
+    unsigned char *key = new unsigned char[keyLength+1];
+    if(!RAND_bytes(key, keyLength)) {
+        cout << "Failed to generate a random key!" << endl;
+    }
+    return key;
+}
+
+unsigned char* AESEnc(const unsigned char *key, const unsigned char *plaintext) {
+
+    size_t length = strlen(reinterpret_cast<const char*>(plaintext));
+    unsigned char* ciphertext = new unsigned char[length + 1];
+    memset(ciphertext, 0, length+1);
+    AES_KEY encryptKey;
+    AES_set_encrypt_key(key, AES_KEY_BITS_LENGTH, &encryptKey);
+    AES_encrypt(plaintext, ciphertext, &encryptKey);
+    return ciphertext;
+}
+
+unsigned char* AESDec(const unsigned char *key, const unsigned char *ciphertext) {
+    size_t length = strlen(reinterpret_cast<const char*>(ciphertext));
+    unsigned char* plaintext = new unsigned char[length + 1];
+    AES_KEY decryptKey;
+    AES_set_decrypt_key(key, AES_KEY_BITS_LENGTH, &decryptKey);
+    AES_decrypt(ciphertext, plaintext, &decryptKey);
+    return plaintext;
+}
