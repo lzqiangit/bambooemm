@@ -4,9 +4,10 @@
 #include <mysql/mysql.h>
 #include <algorithm>
 #include <string.h>
+#include <fstream>
 using namespace std;
 
-vector<KV *> LoadKVList() {
+vector<KV *> LoadKVList(int &n, int &l) {
     MYSQL *con = NULL;
     con = mysql_init(con);//初始化
     if (con == NULL)
@@ -42,12 +43,32 @@ vector<KV *> LoadKVList() {
 
     MYSQL_FIELD * fields;
     vector<KV *> kvList;
+    n = 0;
+    l = 0;
+    int tempL = 0;
+    char *bkey = nullptr;
     while( (row = mysql_fetch_row(res)) != nullptr)  //mysql_fetch_row()函数从指定的结果集中获取一行数据返回给row，是数组的形式，即row内部是字符串数组指针（二级指针）
     {
+        ++n;
         char *key = new char[(strlen(row[0]) + 1)];
         char *value = new char[(strlen(row[1]) + 1)];
         strcpy(key, row[0]);
         strcpy(value, row[1]);
+
+        if(bkey == nullptr) {
+            bkey = key;
+        }
+
+        if ( strcmp(key, bkey) != 0 ) {
+            l = max(l, tempL);
+            tempL = 1;
+            bkey = key;
+        } else {
+            ++tempL;
+        }
+        
+
+
         KV *kv = new KV(key, value, stoi(string(row[2])));
         kvList.push_back(kv);
     }
@@ -82,4 +103,71 @@ unsigned char* AESDec(const unsigned char *key, const unsigned char *ciphertext)
     AES_set_decrypt_key(key, AES_KEY_BITS_LENGTH, &decryptKey);
     AES_decrypt(ciphertext, plaintext, &decryptKey);
     return plaintext;
+}
+
+
+int LenOfInt(int num) {
+    int len = 1;
+    while (num >= 10) {
+        ++len;
+        num /= 10;
+    }
+    return len;
+}
+
+unsigned char* ItoUCStr(int num) {
+    int strLen = LenOfInt(num) + 1;
+    unsigned char* buffer = new unsigned char[strLen];
+    char* temp = new char[strLen];
+    sprintf(temp, "%d", num);
+    buffer = (unsigned char*)temp;
+    delete temp;
+    return buffer;
+}
+
+void GenKey(int level) {
+    // string str = "very nice day!";
+    unsigned char* key = AESGen(level);      // (unsigned char*)str.c_str();// AESGen(level);
+    ofstream outFile("/home/lzq/bemmkey/KI.bin", std::ios::binary);
+    if (!outFile) {
+        std::cerr << "Error writing file." << std::endl;
+        return;
+    }
+
+    outFile.write((char*)key, strlen((char*)key));
+    outFile.close();
+}
+
+unsigned char* LoadKey() {
+
+    std::ifstream file("/home/lzq/bemmkey/KI.bin", std::ios::binary | std::ios::ate);
+    if (file.is_open()) {
+        std::streamsize fileSize = file.tellg();
+        file.seekg(0, std::ios::beg);
+
+        unsigned char* buffer = new unsigned char[fileSize + 1];
+        memset(buffer, 0, fileSize + 1);
+        if (file.read( (char*) buffer, fileSize)) {
+            file.close();
+            return buffer;
+        } else {
+            std::cerr << "Error reading file." << std::endl;
+            file.close();
+            delete[] buffer;
+            return nullptr;
+        }
+    } else {
+        std::cerr << "Unable to open file for reading." << std::endl;
+        return nullptr;
+    }
+}
+
+void printBinary(unsigned char* data, size_t length) {
+    for (size_t i = 0; i < length; ++i) {
+        for (int j = 7; j >= 0; --j) {
+            std::cout << ((data[i] >> j) & 1);
+        }
+        std::cout << " "; // 每个字节之间加一个空格
+    }
+    std::cout << std::endl;
 }

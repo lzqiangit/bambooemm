@@ -18,3 +18,8 @@ add_executable(encryption encryption.cpp)
 target_include_directories(encryption PRIVATE ${HEADPATH})
 target_link_libraries(encryption PRIVATE header utils)
 target_compile_options(encryption PUBLIC "-mavx2")
+
+add_executable(bambooemm bambooemm.cpp)
+target_include_directories(bambooemm PRIVATE ${HEADPATH})
+target_link_libraries(bambooemm PRIVATE header utils hash)
+target_compile_options(bambooemm PUBLIC "-mavx2")

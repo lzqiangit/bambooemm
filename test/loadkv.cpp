@@ -7,9 +7,11 @@ using namespace std;
 // ≤‚ ‘µº»Îkvlist
 int main() {
 
-    vector<KV *> kvList = LoadKVList();
+    int n, l;
+    vector<KV *> kvList = LoadKVList(n, l);
     for (KV *kv : kvList) {
         cout << kv->key << "|" << kv->value << "|" << kv->counter << endl;
     }
+    cout << "Load KV: " << n << "; Max Volumn: " << l << endl;
     return 0; 
 }

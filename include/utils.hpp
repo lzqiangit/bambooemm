@@ -14,7 +14,7 @@ using namespace std;
 #define AES_KEY_BITS_LENGTH AES_KEY_LENGTH * 8
 
 
-vector<KV *> LoadKVList();
+vector<KV *> LoadKVList(int &n, int &l);
 /**
  * Éú³ÉËæ»úAESÃÜÔ¿
  */
@@ -22,4 +22,11 @@ unsigned char* AESGen(int keyLength);
 unsigned char* AESEnc(const unsigned char *key, const unsigned char *plaintext);
 unsigned char* AESDec(const unsigned char *key, const unsigned char *ciphertext);
 
+int LenOfInt(int num);
+unsigned char* ItoUCStr(int num);
+
+void GenKey(int level);
+unsigned char* LoadKey();
+
+void printBinary(unsigned char* data, size_t length);
 #endif
