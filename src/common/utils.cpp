@@ -91,7 +91,7 @@ unsigned char* AESEnc(const unsigned char *key, const unsigned char *plaintext) 
     unsigned char* ciphertext = new unsigned char[length + 1];
     memset(ciphertext, 0, length+1);
     AES_KEY encryptKey;
-    AES_set_encrypt_key(key, AES_KEY_BITS_LENGTH, &encryptKey);
+    AES_set_encrypt_key(key, strlen((char*)key), &encryptKey);
     AES_encrypt(plaintext, ciphertext, &encryptKey);
     return ciphertext;
 }
@@ -100,7 +100,7 @@ unsigned char* AESDec(const unsigned char *key, const unsigned char *ciphertext)
     size_t length = strlen(reinterpret_cast<const char*>(ciphertext));
     unsigned char* plaintext = new unsigned char[length + 1];
     AES_KEY decryptKey;
-    AES_set_decrypt_key(key, AES_KEY_BITS_LENGTH, &decryptKey);
+    AES_set_decrypt_key(key, strlen((char*)key), &decryptKey);
     AES_decrypt(ciphertext, plaintext, &decryptKey);
     return plaintext;
 }
@@ -115,14 +115,13 @@ int LenOfInt(int num) {
     return len;
 }
 
-unsigned char* ItoUCStr(int num) {
-    int strLen = LenOfInt(num) + 1;
-    unsigned char* buffer = new unsigned char[strLen];
-    char* temp = new char[strLen];
-    sprintf(temp, "%d", num);
-    buffer = (unsigned char*)temp;
-    delete temp;
-    return buffer;
+int LenOfUInt(uint32_t num) {
+    int len = 1;
+    while (num >= 10) {
+        ++len;
+        num /= 10;
+    }
+    return len;
 }
 
 void GenKey(int level) {
@@ -162,12 +161,12 @@ unsigned char* LoadKey() {
     }
 }
 
-void printBinary(unsigned char* data, size_t length) {
+void printBinary(char* data, size_t length) {
     for (size_t i = 0; i < length; ++i) {
         for (int j = 7; j >= 0; --j) {
             std::cout << ((data[i] >> j) & 1);
         }
         std::cout << " "; // 每个字节之间加一个空格
     }
-    std::cout << std::endl;
+    std::cout << endl;
 }

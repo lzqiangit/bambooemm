@@ -14,6 +14,7 @@ class BambooEMM
 private:
     BambooFilter *bf;
     unsigned char *KI;
+    char *value;
 
 public:
     BambooEMM()
@@ -30,67 +31,53 @@ public:
         KI = LoadKey();
         for (KV *kv : mm)
         {
-            unsigned char *encKey = AESEnc(KI, (unsigned char *)kv->key);
-            int encKeyLen = strlen((char *)encKey);
-            int tailLen = LenOfInt(kv->counter) + 2;
-            char *tail = new char[tailLen];
-            sprintf(tail, ",%d", kv->counter);
-            unsigned char *tailUS = (unsigned char *)tail; // 指针赋值，不能提前释放tail！
 
-            int ktLen = encKeyLen + tailLen;
-            unsigned char *kt = new unsigned char[ktLen];
-            memset(kt, 0, ktLen);
-            memcpy(kt, encKey, encKeyLen);
-            memcpy(kt + encKeyLen, tailUS, tailLen);
-
-            bf->Insert((char *)kt);
-
-            // //cout << "EK:";
-            // //printBinary(kt, strlen((char*)kt));
-            // cout << kv->key << endl;
-            // cout << kt << "|";
-            // unsigned char *k;
-            // int c;
-            // regetKT(kt, k, c);
-            // cout << k << endl;
-            // cout << "___________________" << endl;
+            uint32_t hashKey = BOBHash::run(kv->key, strlen(kv->key), 3);
+            char* hashKey_counter = Join(hashKey, kv->counter);
+            // cout << kv->key << "|" << hashKey << "|" << hashKey_counter << endl;
+            // break;
+            insert(hashKey_counter, kv->value);
         }
 
         return true;
     }
 
-    void regetKT(unsigned char *kv, unsigned char *&key, int &counter)
-    { // 指针的引用才能修改指针的指向！
-        int kvLen = strlen((char *)kv);
-        int boundary;
-        for (int i = kvLen - 1; i >= 0; i--)
-        { // 乱码中还是可能出现逗号的
-            if (kv[i] == ',')
-            {
-                boundary = i;
-                break;
-            }
-        }
+    bool insert(const char* key, const char* value) {
 
-        unsigned char *encKey = new unsigned char[boundary + 1];
-        memset(encKey, 0, boundary + 1);
-        memcpy(encKey, kv, boundary);
-        // cout << "KK:";
-        // printBinary(encKey, strlen((char*)encKey));
+        uint32_t seg_index, bucket_index, tag;
 
-        unsigned char *counterUCStr = new unsigned char[kvLen - boundary];
-        memset(counterUCStr, 0, kvLen - boundary);
-        memcpy(counterUCStr, kv + boundary + 1, kvLen - boundary - 1);
-        // cout << "CC:";
-        // printBinary(counterUCStr, strlen((char*)counterUCStr));
+        bf->GenerateIndexTagHash(key, seg_index, bucket_index, tag);
+        cout << tag << endl;
+        return true;
+    }
 
-        key = AESDec(KI, encKey);
-        counter = atoi((char *)counterUCStr);
 
-        // delete encKey;
-        // delete counterUCStr;
+private:
+    /**
+     * 将key同counter拼接，返回拼接后的字符串
+     * 注意不会将key哈希
+     */
+    char *Join(uint32_t key, int counter)
+    {
+        // cout << key << endl;
+        int lenKey = LenOfUInt(key);
+        char *keyCStr = new char[lenKey + 1];
+        memset(keyCStr, 0, lenKey + 1);
+        sprintf(keyCStr, "%u", key);
+        
+        int lenTail = LenOfInt(counter) + 1;
+        char* tailCStr = new char[lenTail + 1];
+        memset(tailCStr, 0, lenTail);
+        sprintf(tailCStr, ",%d", counter);
 
-        // cout << kv << " | " << key << " | " << counter << endl;
+        char *ret = new char[lenKey + lenTail + 1];
+        memset(ret, 0, lenKey+lenTail+1);
+        memcpy(ret, keyCStr, lenKey);
+        memcpy(ret + lenKey, tailCStr, lenTail);
+
+        delete keyCStr;
+        delete tailCStr;
+        return ret;
     }
 
     BambooFilter *getEMM()

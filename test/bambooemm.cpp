@@ -14,6 +14,10 @@ void setup() {
     bemm.setup(3, n/0.75, l, mm);
 }
 
+void insert() {
+    
+}
+
 void lookup() {
     BambooEMM bemm;
     int n, l;
@@ -21,21 +25,21 @@ void lookup() {
     
     bemm.setup(3, n/0.75, l, mm);
 
-    BambooFilter *bf = bemm.getEMM();
+    // BambooFilter *bf = bemm.getEMM();
 
 
-    string stre = "hello";
-    cout << bf->Lookup(stre.c_str()) << endl;
-    stre = "key_s_1";
-    unsigned char* t0 = makekey((unsigned char*)stre.c_str(), 0);
-    cout << t0 << endl;
-    cout << "key_s_58,0 : " << bf->Lookup( (char*)t0 ) << endl;
+    // string stre = "hello";
+    // cout << bf->Lookup(stre.c_str()) << endl;
+    // stre = "key_s_1";
+    // unsigned char* t0 = makekey((unsigned char*)stre.c_str(), 0);
+    // cout << t0 << endl;
+    // cout << "key_s_58,0 : " << bf->Lookup( (char*)t0 ) << endl;
 
 }
 
 int main(int argc, char const *argv[])
 {
-    
+ 
     lookup();
     return 0;
 }

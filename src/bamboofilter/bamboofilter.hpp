@@ -68,7 +68,7 @@ public:
 
     ~BambooFilter();
 
-    bool Insert(const char *key);
+    bool Insert(const char *key, char *value);
     bool Lookup(const char *key) const;
     bool Delete(const char *key);
 
@@ -99,13 +99,13 @@ BambooFilter::~BambooFilter()
     }
 }
 
-bool BambooFilter::Insert(const char *key)
+bool BambooFilter::Insert(const char *key, char *value)
 {
     uint32_t seg_index, bucket_index, tag;
 
     GenerateIndexTagHash(key, seg_index, bucket_index, tag);
 
-    hash_table_[seg_index]->Insert(bucket_index, tag);
+    hash_table_[seg_index]->Insert(bucket_index, tag, value);
 
     num_items_++;
 
@@ -122,7 +122,8 @@ bool BambooFilter::Lookup(const char *key) const
     uint32_t seg_index, bucket_index, tag;
 
     GenerateIndexTagHash(key, seg_index, bucket_index, tag);
-    return hash_table_[seg_index]->Lookup(bucket_index, tag);
+    char* value = new char[BYTE_PER_VALUE];
+    return hash_table_[seg_index]->Lookup(bucket_index, tag, value);
 }
 
 bool BambooFilter::Delete(const char *key)

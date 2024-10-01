@@ -23,10 +23,11 @@ unsigned char* AESEnc(const unsigned char *key, const unsigned char *plaintext);
 unsigned char* AESDec(const unsigned char *key, const unsigned char *ciphertext);
 
 int LenOfInt(int num);
+int LenOfUInt(uint32_t num);
 unsigned char* ItoUCStr(int num);
 
 void GenKey(int level);
 unsigned char* LoadKey();
 
-void printBinary(unsigned char* data, size_t length);
+void printBinary(char* data, size_t length);
 #endif

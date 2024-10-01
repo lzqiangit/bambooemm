@@ -26,12 +26,12 @@ int main(int argc, char const *argv[])
 }
 
 void test() {
-    unsigned char* key = AESGen(3);
+    unsigned char* key = LoadKey();
+    string str = "hello open ssl";
+    unsigned char* txt = (unsigned char*)str.c_str();
     
-    for (int i=0; i<1024; i++) {
-        unsigned char* data = new unsigned char[6 + LenOfInt(i) + 1];
-        sprintf((char*)data,"key_s_%d", i);
-        cout << AESDec(key, AESEnc(key, data)) << endl;
-        delete data;
+    for (int i=0; i<10; i++) {
+        unsigned char* encKey = AESEnc(key, txt);
+        printBinary( encKey, strlen( (char*)encKey) );
     }
 }

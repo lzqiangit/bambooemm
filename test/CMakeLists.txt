@@ -23,3 +23,8 @@ add_executable(bambooemm bambooemm.cpp)
 target_include_directories(bambooemm PRIVATE ${HEADPATH})
 target_link_libraries(bambooemm PRIVATE header utils hash)
 target_compile_options(bambooemm PUBLIC "-mavx2")
+
+add_executable(simd simd.cpp)
+target_include_directories(simd PRIVATE ${HEADPATH})
+target_link_libraries(simd PRIVATE header utils hash)
+target_compile_options(simd PUBLIC "-mavx2")

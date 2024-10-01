@@ -38,9 +38,11 @@ int main(int argc, char *argv[])
 
     auto start_time = NowNanos();
 
+    char* str = new char[BYTE_PER_VALUE];
+    memset(str, 0, BYTE_PER_VALUE);
     for (uint64_t added = 0; added < add_count; added++)
     {
-        bbf->Insert(to_add[added].c_str());
+        bbf->Insert(to_add[added].c_str(), str);
     }
 
     cout << ((add_count * 1000.0) / static_cast<double>(NowNanos() - start_time)) << endl;
