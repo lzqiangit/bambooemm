@@ -26,7 +26,7 @@ private:
 private:
     char *temp;
     const uint32_t chain_num;
-    uint32_t chain_capacity;    // 溢出链 + 1（初始段）
+    uint32_t chain_capacity; // 溢出链 + 1（初始段）
     uint32_t total_size;
     uint32_t insert_cur;
     char *data_base;
@@ -119,18 +119,39 @@ private:
 
     static __m256i unpack12to16(const char *p)
     {
-        __m256i v = _mm256_loadu_si256((const __m256i *)(p - 4));       // 即为从p-4开始导入32个字节数据到v中，为什么要移动四个？   256/12 = 
+        __m256i v = _mm256_loadu_si256((const __m256i *)(p - 4)); // 即为从p-4开始导入32个字节数据到v中，为什么要移动四个？   256/12 =
 
         const __m256i bytegrouping =
             _mm256_setr_epi8(4, 5, 5, 6, 7, 8, 8, 9, 10, 11, 11, 12, 13, 14, 14, 15,
                              0, 1, 1, 2, 3, 4, 4, 5, 6, 7, 7, 8, 9, 10, 10, 11);
         v = _mm256_shuffle_epi8(v, bytegrouping);
 
-        __m256i hi = _mm256_srli_epi16(v, 4);   // // 以16为单位，逻辑右移，注意x86小端对齐
-        __m256i lo = _mm256_and_si256(v, _mm256_set1_epi32(0x00000FFF));    // 按位与 32, 注意大小端对齐 11111111 00001111 00000000 00000000
+        __m256i hi = _mm256_srli_epi16(v, 4);                            // // 以16为单位，逻辑右移，注意x86小端对齐
+        __m256i lo = _mm256_and_si256(v, _mm256_set1_epi32(0x00000FFF)); // 按位与 32, 注意大小端对齐 11111111 00001111 00000000 00000000
 
-        return _mm256_blend_epi16(lo, hi, 0b10101010);      // 第三个参数从右向左代表复制到的目标数值的从低到高位
-                                                            // 0表示复制第一个参数的对应位置，1表示复制第二个参数的对应位置
+        return _mm256_blend_epi16(lo, hi, 0b10101010); // 第三个参数从右向左代表复制到的目标数值的从低到高位
+                                                       // 0表示复制第一个参数的对应位置，1表示复制第二个参数的对应位置
+    }
+
+    void set_value(uint32_t bucket_id, uint32_t chain_id, uint32_t tag_id, const char *value)
+    {
+        char *value_p = value_set + (((bucket_id * chain_capacity) + chain_id) * kTagsPerBucket + tag_id) * BYTE_PER_VALUE;
+        memcpy(value_p, value, BYTE_PER_VALUE);
+    }
+
+    char *get_value(uint32_t bucket_id, uint32_t chain_id, uint32_t tag_id) const
+    {
+        return value_set + (((bucket_id * chain_capacity) + chain_id) * kTagsPerBucket + tag_id) * BYTE_PER_VALUE;
+    }
+
+    int cmp_to_tag_id(int cmp)
+    {
+        int idx = 0;
+        while ((cmp = cmp >> 2))
+        {
+            ++idx;
+        }
+        return idx;
     }
 
 public:
@@ -143,9 +164,9 @@ public:
         total_size = chain_num * chain_capacity * bucket_size + safe_pad;
         data_base = new char[total_size];
         memset(data_base, 0, (chain_num * chain_capacity * bucket_size));
-        temp = new char[safe_pad_simd + (2 * chain_capacity * bucket_size + 23) / 24 * 24 + safe_pad_simd];     // temp前填充 safepad 的4byte   *2：两个候选桶
+        temp = new char[safe_pad_simd + (2 * chain_capacity * bucket_size + 23) / 24 * 24 + safe_pad_simd]; // temp前填充 safepad 的4byte   *2：两个候选桶
 
-        uint32_t value_size = BYTE_PER_VALUE *  getTagNum();
+        uint32_t value_size = BYTE_PER_VALUE * getTagNum();
         value_set = new char[value_size];
         memset(value_set, 0, value_size);
     }
@@ -161,7 +182,7 @@ public:
         temp = new char[safe_pad_simd + (2 * chain_capacity * bucket_size + 23) / 24 * 24 + safe_pad_simd];
         memcpy(data_base, s.data_base, total_size);
 
-        uint32_t value_size = BYTE_PER_VALUE *  s.getTagNum();
+        uint32_t value_size = BYTE_PER_VALUE * s.getTagNum();
         value_set = new char[value_size];
         memcpy(value_set, s.getValueSet(), value_size);
     }
@@ -177,14 +198,14 @@ public:
      * chain_idx 桶id
      * curtag 指纹
      */
-    bool Insert(uint32_t chain_idx, uint32_t curtag, char* value)
+    bool Insert(uint32_t chain_idx, uint32_t curtag, char *value)
     {
         char *bucket_p;
         char *value_p;
         for (uint32_t count = 0; count < MAX_CUCKOO_KICK; count++)
         {
             bucket_p = data_base + (chain_idx * chain_capacity + insert_cur) * bucket_size;
-            
+
             bool kickout = count > 0;
 
             for (size_t tag_idx = 0; tag_idx < kTagsPerBucket; tag_idx++)
@@ -193,9 +214,7 @@ public:
                 {
                     WriteTag(bucket_p, tag_idx, curtag);
                     // 写入value
-                    value_p = value_set + ((chain_idx * chain_capacity + insert_cur) * kTagsPerBucket + tag_idx) * BYTE_PER_VALUE;
-                    memcpy(value_p, value, BYTE_PER_VALUE);
-                    //
+                    set_value(chain_idx, insert_cur, tag_idx, value);
                     return true;
                 }
             }
@@ -206,7 +225,7 @@ public:
                 uint32_t oldtag = ReadTag(bucket_p, tag_idx);
                 WriteTag(bucket_p, tag_idx, curtag);
                 value_p = value_set + ((chain_idx * chain_capacity + insert_cur) * kTagsPerBucket + tag_idx) * BYTE_PER_VALUE;
-                //SwapValue(value, value_p);
+                SwapValue(value, value_p);
                 curtag = oldtag;
             }
             chain_idx = AltIndex(chain_idx, curtag);
@@ -232,7 +251,7 @@ public:
 
             // 重新复制value
             uint32_t new_value_len = getTagNum() * BYTE_PER_VALUE;
-            char* new_value_set = new char[new_value_len];
+            char *new_value_set = new char[new_value_len];
             memset(new_value_set, 0, new_value_len);
             uint32_t new_valueset_len = chain_capacity * kTagsPerBucket * BYTE_PER_VALUE;
 
@@ -251,39 +270,50 @@ public:
     /**
      * chain_idx : bucket_index
      */
-    bool Lookup(uint32_t chain_idx, uint16_t tag, char* &vaule) const
+    bool Lookup(uint32_t chain_idx, uint16_t tag, char *&value) const
     {
         memcpy(temp + safe_pad_simd,
-               data_base + chain_idx * chain_capacity * bucket_size,
+               data_base + chain_idx * chain_capacity * bucket_size, // bucket_size = 6
                chain_capacity * bucket_size);
         memcpy(temp + safe_pad_simd + chain_capacity * bucket_size,
                data_base + AltIndex(chain_idx, tag) * chain_capacity * bucket_size,
                chain_capacity * bucket_size);
 
         char *value_set_p_0 = value_set + chain_idx * chain_capacity * kTagsPerBucket * BYTE_PER_VALUE; // 桶的起始地址
-        char *value_set_p_1 = value_set + AltIndex(chain_idx, tag) * chain_capacity * kTagsPerBucket * BYTE_PER_VALUE; 
+        char *value_set_p_1 = value_set + AltIndex(chain_idx, tag) * chain_capacity * kTagsPerBucket * BYTE_PER_VALUE;
 
         char *p = temp + safe_pad_simd;
         char *end = p + 2 * chain_capacity * bucket_size;
 
-        __m256i _true_tag = _mm256_set1_epi16(tag);         // 将tag装入16个平行的16字节中（p标量）
-        while (p + 24 <= end)
+        int times = 0;
+        __m256i _true_tag = _mm256_set1_epi16(tag); // 将tag装入16个平行的16字节中（p标量）
+        int cmp = 0;
+        while (p + 24 <= end)                       // 一次查 24*8/12 = 16个 也就是四个桶       24*8 = 192
         {
 
-            __m256i _16_tags = unpack12to16(p);             // 一个tag 12bits，8*24/12 = 16个tag
-            
+            /**
+             * 把16个tag分别填充到16*16bit中，每个tag的12bit占据低
+             */
+            __m256i _16_tags = unpack12to16(p); // 一个tag 12bits，8*24/12 = 16个tag
+
             __m256i _ans = _mm256_cmpeq_epi16(_16_tags, _true_tag);
-            if (_mm256_movemask_epi8(_ans))
+            cmp = _mm256_movemask_epi8(_ans);
+            if (cmp)
             {
+                value = LookupValue(cmp, times, chain_idx, tag);
+
                 return true;
             }
             p += 24;
+            ++times;
         }
         __m256i _16_tags = unpack12to16(p);
 
         __m256i _ans = _mm256_cmpeq_epi16(_16_tags, _true_tag);
-        if (ANS_MASK & _mm256_movemask_epi8(_ans))
+        cmp = ANS_MASK & _mm256_movemask_epi8(_ans);
+        if (cmp)
         {
+            value = LookupValue(cmp, times, chain_idx, tag);
             return true;
         }
         return false;
@@ -345,20 +375,54 @@ public:
         temp = new char[safe_pad_simd + (2 * chain_capacity * bucket_size + 23) / 24 * 24 + safe_pad_simd];
     }
 
-// const参数只能使用const方法
-    uint32_t getTagNum() const {
+    // const参数只能使用const方法
+    uint32_t getTagNum() const
+    {
         return chain_capacity * chain_num * kTagsPerBucket;
     }
 
-    char* getValueSet() const {
+    char *getValueSet() const
+    {
         return value_set;
     }
 
-    bool SwapValue(char *value1, char *value2) {
-        char* temp = new char[BYTE_PER_VALUE];
+    bool SwapValue(char *value1, char *value2)
+    {
+        char *temp = new char[BYTE_PER_VALUE];
         memcpy(temp, value1, BYTE_PER_VALUE);
         memcpy(value1, value2, BYTE_PER_VALUE);
         memcpy(value2, temp, BYTE_PER_VALUE);
-        delete []temp;
+        delete[] temp;
+        return true;
+    }
+
+    /**
+     * cmp 对比的结果
+     * times 16一组的比较次数
+     * chain_idx 桶编号（Look传入的，未AltIndex前的，该桶及其平行溢出链排在前面）
+     * tag 指纹
+     */
+    char* LookupValue(int cmp, int times, size_t chain_idx, uint32_t tag) const {
+        int tag_index = (int)log2(cmp / 3) / log2(4);
+        tag_index += times * 16;
+
+        // 计算一个segment中
+        int a_chains_tag_num = chain_capacity * kTagsPerBucket;
+        int bucket_id, chain_id, tag_id;
+        if (tag_index < a_chains_tag_num)
+        {
+            bucket_id = (int)chain_idx;
+        }
+        else
+        {
+            tag_index -= a_chains_tag_num;
+            bucket_id = AltIndex(chain_idx, tag);
+        }
+        chain_id = tag_index / kTagsPerBucket; // 一个桶中4个tag
+        tag_id = tag_index % kTagsPerBucket;
+        char *value_p = get_value(bucket_id, chain_id, tag_id);
+        char *value = new char[BYTE_PER_VALUE];
+        memcpy(value, value_p, BYTE_PER_VALUE);
+        return value;
     }
 };

@@ -30,4 +30,5 @@ void GenKey(int level);
 unsigned char* LoadKey();
 
 void printBinary(char* data, size_t length);
+uint32_t get_value_id(const char* value);
 #endif

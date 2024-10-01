@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <cstring>
 #include "utils.hpp"
+#include <cmath>
 using namespace std;
 
 void store_to_memory(__m256i tag, __m256i *memory)
@@ -55,7 +56,7 @@ void shuffle() {
     print_m256i(v, 1);
     cout << "++++++++++++++++++++++++++++++++++" << endl;
     __m256i bytegrouping = _mm256_setr_epi8(4, 5, 5, 6, 7, 8, 8, 9, 10, 11, 11, 12, 13, 14, 14, 15,
-                                            0, 1, 1, 2, 3, 4, 4, 5, 6, 7, 7, 8, 9, 10, 10, 11);
+                                            0, 1, 1, 2, 3, 4, 4, 5, 6, 7, 7, 8, 9, 10, 10, 11);         // 分前16个字节和后16个字节两组，按照参数中给定的 16 * 2两组数据的编号复制到返回参数中
     v = _mm256_shuffle_epi8(v, bytegrouping);
     print_m256i(v, 1);
 }
@@ -129,9 +130,42 @@ void blend() {
     print_m256i(v1, 2);
     cout << "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@" << endl;
     print_m256i(v, 2);
-}    
+}
+
+void cmpeq() {
+    char *data0 = new char[32];
+    char *data1 = new char[32];
+    for (int i = 0; i < 32; i++)
+    {
+        memset(data0 + i, i, 1);
+        memset(data1 + i, i-1, 1);
+    }
+    memset(data1 + 2, 2, 1);
+    memset(data1 + 3, 3, 1);
+    __m256i v0 = _mm256_loadu_si256((const __m256i *)(data0));
+    __m256i v1 = _mm256_loadu_si256((const __m256i *)(data1));
+    __m256i _ans = _mm256_cmpeq_epi16(v0, v1);
+    print_m256i(v0, 2);
+    cout << "__________________________" << endl;
+    print_m256i(v1, 2);
+    cout << "__________________________" << endl;
+    print_m256i(_ans, 2);
+    cout << "__________________________" << endl;
+    int r = _mm256_movemask_epi8(_ans);
+    cout << r << endl;
+}
+
+int cmp_to_tag_id(int cmp) {
+    return (int)log2(cmp / 3) / log2(4);
+    // int idx = 0;
+    // while ((cmp = cmp >> 2)) {
+    //     ++idx;
+    // }
+    // return idx; 
+}
+
 int main(int argc, char const *argv[])
 {
-    blend();
+    cout << cmp_to_tag_id(3) << endl;
     return 0;
 }

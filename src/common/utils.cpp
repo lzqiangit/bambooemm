@@ -5,6 +5,9 @@
 #include <algorithm>
 #include <string.h>
 #include <fstream>
+#include <sstream>  
+#include <string>  
+#include <stdexcept>  
 using namespace std;
 
 vector<KV *> LoadKVList(int &n, int &l) {
@@ -169,4 +172,24 @@ void printBinary(char* data, size_t length) {
         std::cout << " "; // 每个字节之间加一个空格
     }
     std::cout << endl;
+}
+
+uint32_t get_value_id(const char* value) {  
+    string input = value;
+    // 使用字符串流和字符串操作找到最后一个下划线并提取 id 部分  
+    std::size_t pos = input.rfind('_');  
+    if (pos == std::string::npos || pos == input.size() - 1) {  
+        throw std::invalid_argument("Invalid input string format");  
+    }  
+      
+    std::string idStr = input.substr(pos + 1);  
+      
+    // 使用字符串流将 id 部分转换为 unsigned int  
+    uint32_t id;  
+    std::istringstream iss(idStr);  
+    if (!(iss >> id)) {  
+        throw std::invalid_argument("Failed to convert id to unsigned int");  
+    }  
+      
+    return id;  
 }

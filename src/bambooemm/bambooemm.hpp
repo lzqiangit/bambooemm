@@ -15,6 +15,7 @@ private:
     BambooFilter *bf;
     unsigned char *KI;
     char *value;
+    int max_volume, elem_num;
 
 public:
     BambooEMM()
@@ -24,33 +25,58 @@ public:
     {
     }
 
-    bool setup(int level, int n, int l, vector<KV *> mm)
+    bool Setup(int level, int n, int l, vector<KV *> mm)
     {
 
         bf = new BambooFilter(upperpower2(200000), 2);
         KI = LoadKey();
+        int index = 0;
         for (KV *kv : mm)
         {
-
-            uint32_t hashKey = BOBHash::run(kv->key, strlen(kv->key), 3);
-            char* hashKey_counter = Join(hashKey, kv->counter);
-            // cout << kv->key << "|" << hashKey << "|" << hashKey_counter << endl;
-            // break;
-            insert(hashKey_counter, kv->value);
+            uint32_t id = get_value_id(kv->value);
+            delete kv->value;
+            kv->value = new char[BYTE_PER_VALUE];
+            memcpy(kv->value, &id, BYTE_PER_VALUE);
+            Insert(kv);
         }
-
+        elem_num = n;
+        max_volume = l;
         return true;
     }
 
-    bool insert(const char* key, const char* value) {
-
+    bool Insert(KV *kv)
+    {
         uint32_t seg_index, bucket_index, tag;
-
-        bf->GenerateIndexTagHash(key, seg_index, bucket_index, tag);
-        cout << tag << endl;
-        return true;
+        uint32_t hashKey = BOBHash::run(kv->key, strlen(kv->key), 3);
+        char *hashKey_counter = Join(hashKey, kv->counter);
+        return bf->Insert(hashKey_counter, kv->value);
     }
 
+    /**
+     * query前是否需要加密？
+     */
+    vector<char *> Query(const char *key)
+    {
+        vector<char *> ret;
+        char *temp;
+        char *padding_value = new char[BYTE_PER_VALUE];
+        uint32_t padding_num = 666666;
+        memcpy(padding_value, &padding_num, BYTE_PER_VALUE);
+        uint32_t seg_index, bucket_index, tag;
+        uint32_t hashKey = BOBHash::run(key, strlen(key), 3);
+        for (int i = 0; i < max_volume; i++)
+        {
+            char *hashKey_counter = Join(hashKey, i);
+            if (bf->Lookup(hashKey_counter, temp))
+            {
+                ret.push_back(temp);
+            }
+            // } else {
+            //     ret.push_back(padding_value);
+            // }
+        }
+        return ret;
+    }
 
 private:
     /**
@@ -64,14 +90,14 @@ private:
         char *keyCStr = new char[lenKey + 1];
         memset(keyCStr, 0, lenKey + 1);
         sprintf(keyCStr, "%u", key);
-        
+
         int lenTail = LenOfInt(counter) + 1;
-        char* tailCStr = new char[lenTail + 1];
+        char *tailCStr = new char[lenTail + 1];
         memset(tailCStr, 0, lenTail);
         sprintf(tailCStr, ",%d", counter);
 
         char *ret = new char[lenKey + lenTail + 1];
-        memset(ret, 0, lenKey+lenTail+1);
+        memset(ret, 0, lenKey + lenTail + 1);
         memcpy(ret, keyCStr, lenKey);
         memcpy(ret + lenKey, tailCStr, lenTail);
 

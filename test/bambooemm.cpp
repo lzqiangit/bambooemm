@@ -11,7 +11,7 @@ void setup() {
     int n, l;
     vector<KV *> mm = LoadKVList(n, l);
     
-    bemm.setup(3, n/0.75, l, mm);
+    bemm.Setup(3, n/0.75, l, mm);
 }
 
 void insert() {
@@ -23,18 +23,17 @@ void lookup() {
     int n, l;
     vector<KV *> mm = LoadKVList(n, l);
     
-    bemm.setup(3, n/0.75, l, mm);
+    bemm.Setup(3, n/0.75, l, mm);
 
-    // BambooFilter *bf = bemm.getEMM();
+    string key_str = "key_s_1";
+    const char* key = key_str.c_str();
+    vector<char*> ret = bemm.Query(key);
 
-
-    // string stre = "hello";
-    // cout << bf->Lookup(stre.c_str()) << endl;
-    // stre = "key_s_1";
-    // unsigned char* t0 = makekey((unsigned char*)stre.c_str(), 0);
-    // cout << t0 << endl;
-    // cout << "key_s_58,0 : " << bf->Lookup( (char*)t0 ) << endl;
-
+    uint32_t *temp = new uint32_t;
+    for (int i=0; i<ret.size(); i++) {
+        memcpy(temp, ret.at(i), BYTE_PER_VALUE);
+        cout << *temp << endl;
+    }
 }
 
 int main(int argc, char const *argv[])
