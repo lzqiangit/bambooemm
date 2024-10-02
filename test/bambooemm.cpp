@@ -2,6 +2,7 @@
 #include "bambooemm.hpp"
 #include "KV.hpp"
 #include "utils.hpp"
+#include "common/random.h"
 using namespace std;
 
 unsigned char* makekey(unsigned char* key, int counter);
@@ -11,7 +12,7 @@ void setup() {
     int n, l;
     vector<KV *> mm = LoadKVList(n, l);
     
-    bemm.Setup(3, n/0.75, l, mm);
+    bemm.Setup(3, n/0.75, l);
 }
 
 void insert() {
@@ -23,9 +24,10 @@ void lookup() {
     int n, l;
     vector<KV *> mm = LoadKVList(n, l);
     
-    bemm.Setup(3, n/0.75, l, mm);
+    bemm.Setup(3, n/0.75, l);
+    bemm.LoadMM(mm);
 
-    string key_str = "key_s_1";
+    string key_str = "key_s_10";
     const char* key = key_str.c_str();
     vector<char*> ret = bemm.Query(key);
 

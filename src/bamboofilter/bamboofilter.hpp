@@ -148,13 +148,14 @@ bool BambooFilter::Delete(const char *key)
 
 void BambooFilter::Extend()
 {
+
+    cout << "EXTEND!!" << endl;
     Segment *src = hash_table_[next_split_idx_];
     Segment *dst = new Segment(*src);
     hash_table_.push_back(dst);
 
     uint32_t num_seg_bits_ = (uint32_t)ceil(log2((double)hash_table_.size()));
     num_table_bits_ = num_seg_bits_ + BUCKETS_PER_SEG;
-
     src->EraseEle(true, ACTV_TAG_BIT - 1);
     dst->EraseEle(false, ACTV_TAG_BIT - 1);
 

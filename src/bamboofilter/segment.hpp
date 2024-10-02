@@ -7,6 +7,8 @@
 #include "bamboofilter/bitsutil.h"
 #include "bamboofilter/predefine.h"
 
+#include "utils.hpp"
+
 using namespace std;
 
 class Segment
@@ -25,7 +27,7 @@ private:
 
 private:
     char *temp;
-    const uint32_t chain_num;
+    const uint32_t chain_num;   // 段中的桶的数量
     uint32_t chain_capacity; // 溢出链 + 1（初始段）
     uint32_t total_size;
     uint32_t insert_cur;
@@ -109,12 +111,47 @@ private:
         return false;
     }
 
-    static void doErase(char *p, bool is_src, uint32_t actv_bit)
+    /**
+     * p 起始地址
+     * is_src true则留0 false则留1
+     * actv_bit num_table_bits_ - INIT_TABLE_BITS ， num_table_bits_ = num_seg_bits_ + BUCKETS_PER_SEG
+     */
+    static uint64_t doErase(char *p, bool is_src, uint32_t actv_bit)
     {
         uint64_t v = (*(uint64_t *)p) & kBucketMask;
 
         ((uint64_t *)p)[0] &= 0xffff000000000000;
         ((uint64_t *)p)[0] |= is_src ? ll_isl(v, actv_bit) : ll_isn(v, actv_bit);
+
+        uint64_t delFlag = (v & (0x001001001001ULL << actv_bit)) >> actv_bit;
+        //cout << delFlag << endl;
+        //cout << v << endl;
+        if (is_src) {
+            ((uint64_t *)p)[0] |= (v & (~(delFlag * 0xFFFULL)));
+            //cout << (v & (~(delFlag * 0xFFFULL))) << endl;
+        } else {
+            ((uint64_t *)p)[0] |= (v & (delFlag * 0xFFFULL));
+            //cout << (v & ((delFlag * 0xFFFULL)));
+        }
+        return delFlag;
+    }
+
+    bool eraseValue(uint32_t bucket_id, uint32_t chain_id, uint64_t delFlag, bool is_src) {
+        uint64_t mask = 0x000000000001ULL;
+        for (int i=0; i<kTagsPerBucket; i++) {
+            char *tag_p = get_value(bucket_id, chain_id, i);
+            if (delFlag & mask) {
+                if (is_src) {
+                    memset(tag_p, 0, BYTE_PER_VALUE);
+                }
+            } else {
+                if (!is_src) {
+                    memset(tag_p, 0, BYTE_PER_VALUE);
+                }
+            } 
+            mask << 12;
+        } 
+        return true;         
     }
 
     static __m256i unpack12to16(const char *p)
@@ -135,11 +172,11 @@ private:
 
     void set_value(uint32_t bucket_id, uint32_t chain_id, uint32_t tag_id, const char *value)
     {
-        char *value_p = value_set + (((bucket_id * chain_capacity) + chain_id) * kTagsPerBucket + tag_id) * BYTE_PER_VALUE;
+        char *value_p = get_value(bucket_id, chain_id, tag_id);
         memcpy(value_p, value, BYTE_PER_VALUE);
     }
 
-    char *get_value(uint32_t bucket_id, uint32_t chain_id, uint32_t tag_id) const
+    char *get_value(uint32_t bucket_id, uint32_t chain_id, uint32_t tag_id)
     {
         return value_set + (((bucket_id * chain_capacity) + chain_id) * kTagsPerBucket + tag_id) * BYTE_PER_VALUE;
     }
@@ -341,12 +378,20 @@ public:
         return false;
     }
 
+    /**
+     * 按照条件，删除tag和对应value
+     * is_src true表示需要扩展的segment，false表示新增的segment
+     * 
+     */
     void EraseEle(bool is_src, uint32_t actv_bit)
     {
-        for (int i = 0; i < chain_num * chain_capacity; i++)
-        {
-            char *p = data_base + i * bucket_size;
-            doErase(p, is_src, actv_bit);
+        int bucket_id = 0;
+        for (int i = 0; i<chain_num; i++) {
+            for (int j=0; j<chain_capacity; j++) {
+                char *p = data_base + i * j * bucket_size;
+                uint64_t delFlag = doErase(p, is_src, actv_bit);
+                eraseValue(i, j, delFlag, is_src);
+            }
         }
         insert_cur = 0;
     }

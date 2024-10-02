@@ -48,9 +48,10 @@ int main(int argc, char *argv[])
     cout << ((add_count * 1000.0) / static_cast<double>(NowNanos() - start_time)) << endl;
 
     start_time = NowNanos();
+    char* temp = new char[BYTE_PER_VALUE];
     for (uint64_t added = 0; added < add_count; added++)
     {
-        if (!bbf->Lookup(to_add[added].c_str()))
+        if (!bbf->Lookup(to_add[added].c_str(), temp))
         {
             throw logic_error("False Negative");
         }

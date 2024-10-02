@@ -2,10 +2,12 @@ project(test)
 find_package(OpenSSL REQUIRED)
 
 add_executable(example example.cpp)
+target_include_directories(example PRIVATE ${HEADPATH})
 target_link_libraries(example PRIVATE header hash)
 target_compile_options(example PUBLIC "-mavx2")
 
 add_executable(evaluation evaluation.cpp)
+target_include_directories(evaluation PRIVATE ${HEADPATH})
 target_link_libraries(evaluation PRIVATE header hash)
 target_compile_options(evaluation PUBLIC "-mavx2")
 
@@ -28,3 +30,8 @@ add_executable(simd simd.cpp)
 target_include_directories(simd PRIVATE ${HEADPATH})
 target_link_libraries(simd PRIVATE header utils hash)
 target_compile_options(simd PUBLIC "-mavx2")
+
+add_executable(segment segment.cpp)
+target_include_directories(segment PRIVATE ${HEADPATH})
+target_link_libraries(segment PRIVATE header utils hash)
+target_compile_options(segment PUBLIC "-mavx2")

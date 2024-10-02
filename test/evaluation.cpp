@@ -39,17 +39,17 @@ int main(int argc, char *argv[])
     for (auto exp_idx = 1; exp_idx <= 7; exp_idx++)
     {
         auto add_count = exp_idx * 200000;
-
+        char *value = new char[BYTE_PER_VALUE];
         BambooFilter *bbf = new BambooFilter(upperpower2(200000), 2);
         for (uint64_t added = 0; added < add_count; added++)
         {
-            bbf->Insert(to_add[added].c_str());
+            bbf->Insert(to_add[added].c_str(), value);
         }
 
         auto start_time = NowNanos();
         for (uint64_t added = 0; added < add_count; added++)
         {
-            bbf->Lookup(to_add[added].c_str());
+            bbf->Lookup(to_add[added].c_str(), value);
         }
         cout << ((add_count * 1000.0) / static_cast<double>(NowNanos() - start_time)) << endl;
     }

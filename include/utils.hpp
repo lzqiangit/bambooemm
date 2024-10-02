@@ -31,4 +31,6 @@ unsigned char* LoadKey();
 
 void printBinary(char* data, size_t length);
 uint32_t get_value_id(const char* value);
+void print_uint64(uint64_t num);
+void print_64title();
 #endif

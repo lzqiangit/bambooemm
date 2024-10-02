@@ -7,7 +7,8 @@
 #include <fstream>
 #include <sstream>  
 #include <string>  
-#include <stdexcept>  
+#include <stdexcept> 
+#include <bitset>   
 using namespace std;
 
 vector<KV *> LoadKVList(int &n, int &l) {
@@ -192,4 +193,18 @@ uint32_t get_value_id(const char* value) {
     }  
       
     return id;  
+}
+
+void print_uint64(uint64_t num) {
+    bitset<sizeof(unsigned long int) * 8> binary(num);  
+    std::cout << binary << std::endl;  
+}
+
+void print_64title() {
+    for (int i=0; i<8; i++) {
+        for (int j=0; j<8; j++) {
+            cout << j;
+        }
+    }
+    cout << endl;
 }

@@ -8,7 +8,7 @@ add_library(hash STATIC "common/BOBHash.cpp")
 target_link_libraries(hash PUBLIC header)
 
 add_library(utils STATIC "common/utils.cpp")
-target_include_directories(utils PUBLIC ${HEADPATH})
+include_directories(utils PUBLIC ${HEADPATH})
 target_link_libraries(utils PUBLIC header mysqlclient ${OPENSSL_LIBRARIES})      # ÐèÒªÁ´½Ó  mysqlclient
 message(OPENSSL_LIBRARIES: ${OPENSSL_LIBRARIES})
 

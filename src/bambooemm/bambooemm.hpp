@@ -25,12 +25,17 @@ public:
     {
     }
 
-    bool Setup(int level, int n, int l, vector<KV *> mm)
+    bool Setup(int level, int n, int l)
     {
 
-        bf = new BambooFilter(upperpower2(200000), 2);
+        bf = new BambooFilter(upperpower2(12500), 2);
         KI = LoadKey();
-        int index = 0;
+        elem_num = n;
+        max_volume = l;
+        return true;
+    }
+
+    bool LoadMM(vector<KV *> mm) {
         for (KV *kv : mm)
         {
             uint32_t id = get_value_id(kv->value);
@@ -39,8 +44,6 @@ public:
             memcpy(kv->value, &id, BYTE_PER_VALUE);
             Insert(kv);
         }
-        elem_num = n;
-        max_volume = l;
         return true;
     }
 
