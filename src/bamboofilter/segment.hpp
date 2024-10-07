@@ -149,7 +149,7 @@ private:
                     memset(tag_p, 0, BYTE_PER_VALUE);
                 }
             } 
-            mask << 12;
+            mask = mask << 12;
         } 
         return true;         
     }
@@ -173,22 +173,39 @@ private:
     void set_value(uint32_t bucket_id, uint32_t chain_id, uint32_t tag_id, const char *value)
     {
         char *value_p = get_value(bucket_id, chain_id, tag_id);
+        if (value_p >= get_value(1003, 0, 1) && value_p < get_value(1003, 0, 1) + 3) {
+            cout << endl << "EQU:" << *(uint32_t*)value << endl;
+        }
         memcpy(value_p, value, BYTE_PER_VALUE);
     }
 
-    char *get_value(uint32_t bucket_id, uint32_t chain_id, uint32_t tag_id)
+    char *get_value(uint32_t bucket_id, uint32_t chain_id, uint32_t tag_id) const
     {
         return value_set + (((bucket_id * chain_capacity) + chain_id) * kTagsPerBucket + tag_id) * BYTE_PER_VALUE;
     }
 
-    int cmp_to_tag_id(int cmp)
-    {
-        int idx = 0;
-        while ((cmp = cmp >> 2))
-        {
-            ++idx;
+    bool isCrash(char* bucket_p, uint32_t tag) {
+        uint32_t t = tag & kTagMask;
+        for (int idx = 0; idx<4; idx++) {
+            char *p = bucket_p + (idx + (idx >> 1));
+            if ((idx & 1) == 0)
+            {
+                if (((uint16_t *)p)[0] & 0x0fff ^ t) {
+                    
+                } else {
+                    return true;
+                }
+            }
+            else
+            {
+                if((((uint16_t *)p)[0] >> 4) & 0x0fff ^ t) {
+                    
+                } else {
+                    return true;
+                }
+            }
         }
-        return idx;
+        return false;
     }
 
 public:
@@ -244,26 +261,31 @@ public:
             bucket_p = data_base + (chain_idx * chain_capacity + insert_cur) * bucket_size;
 
             bool kickout = count > 0;
-
-            for (size_t tag_idx = 0; tag_idx < kTagsPerBucket; tag_idx++)
-            {
-                if (0 == ReadTag(bucket_p, tag_idx))
+            // 判断是否碰撞
+            if (!isCrash(bucket_p, curtag)) {
+                for (size_t tag_idx = 0; tag_idx < kTagsPerBucket; tag_idx++)
                 {
-                    WriteTag(bucket_p, tag_idx, curtag);
-                    // 写入value
-                    set_value(chain_idx, insert_cur, tag_idx, value);
-                    return true;
+                    if ( (0 == ReadTag(bucket_p, tag_idx)))
+                    {
+                        WriteTag(bucket_p, tag_idx, curtag);
+                        // 写入value
+                        set_value(chain_idx, insert_cur, tag_idx, value);
+                        return true;
+                    }
                 }
-            }
 
-            if (kickout)
-            {
-                size_t tag_idx = rand() % kTagsPerBucket;
-                uint32_t oldtag = ReadTag(bucket_p, tag_idx);
-                WriteTag(bucket_p, tag_idx, curtag);
-                value_p = value_set + ((chain_idx * chain_capacity + insert_cur) * kTagsPerBucket + tag_idx) * BYTE_PER_VALUE;
-                SwapValue(value, value_p);
-                curtag = oldtag;
+                if (kickout)
+                {
+                    size_t tag_idx = rand() % kTagsPerBucket;
+                    uint32_t oldtag = ReadTag(bucket_p, tag_idx);
+                    WriteTag(bucket_p, tag_idx, curtag);
+                    value_p = value_set + ((chain_idx * chain_capacity + insert_cur) * kTagsPerBucket + tag_idx) * BYTE_PER_VALUE;
+                    SwapValue(value, value_p);
+                    curtag = oldtag;
+                    cout << "KickOut" << endl;
+                }
+            } else {
+                cout << "CCCCCCCCCCCCCCCCrash:" << *(uint32_t*)value << endl;
             }
             chain_idx = AltIndex(chain_idx, curtag);
             bucket_p = data_base + (chain_idx * chain_capacity + insert_cur) * bucket_size;
@@ -272,6 +294,7 @@ public:
         insert_cur++;
         if (insert_cur >= chain_capacity)
         {
+            cout << "ADD CHAIN" << endl;
             char *old_data_base = data_base;
             uint32_t old_chain_len = chain_capacity * bucket_size;
             // 计算初始valueset的长度
@@ -307,7 +330,7 @@ public:
     /**
      * chain_idx : bucket_index
      */
-    bool Lookup(uint32_t chain_idx, uint16_t tag, char *&value) const
+    bool Lookup(uint32_t chain_idx, uint16_t tag, vector<char*> &values) const
     {
         memcpy(temp + safe_pad_simd,
                data_base + chain_idx * chain_capacity * bucket_size, // bucket_size = 6
@@ -324,10 +347,10 @@ public:
 
         int times = 0;
         __m256i _true_tag = _mm256_set1_epi16(tag); // 将tag装入16个平行的16字节中（p标量）
-        int cmp = 0;
+        uint32_t cmp = 0;
+        bool ret = false;
         while (p + 24 <= end)                       // 一次查 24*8/12 = 16个 也就是四个桶       24*8 = 192
         {
-
             /**
              * 把16个tag分别填充到16*16bit中，每个tag的12bit占据低
              */
@@ -337,23 +360,21 @@ public:
             cmp = _mm256_movemask_epi8(_ans);
             if (cmp)
             {
-                value = LookupValue(cmp, times, chain_idx, tag);
-
-                return true;
+                LookupValue(cmp, times, chain_idx, tag, values);
+                ret = true;
             }
             p += 24;
             ++times;
         }
         __m256i _16_tags = unpack12to16(p);
-
         __m256i _ans = _mm256_cmpeq_epi16(_16_tags, _true_tag);
         cmp = ANS_MASK & _mm256_movemask_epi8(_ans);
         if (cmp)
         {
-            value = LookupValue(cmp, times, chain_idx, tag);
-            return true;
+            LookupValue(cmp, times, chain_idx, tag, values);
+            ret = true;
         }
-        return false;
+        return ret;
     }
 
     bool Delete(uint32_t chain_idx, uint32_t tag)
@@ -433,6 +454,7 @@ public:
 
     bool SwapValue(char *value1, char *value2)
     {
+        // cout << "SWAP: " << *(uint32_t*)value1 << "|" << *(uint32_t*)value2 << endl;
         char *temp = new char[BYTE_PER_VALUE];
         memcpy(temp, value1, BYTE_PER_VALUE);
         memcpy(value1, value2, BYTE_PER_VALUE);
@@ -441,33 +463,55 @@ public:
         return true;
     }
 
+    vector<int> cmp_to_tag_id(uint32_t cmp) const
+    {
+        vector<int> ret;
+        uint32_t mask = 0x00000003;
+        for (int i=0; i<16; i++) {
+            if (cmp & mask) {
+                ret.push_back(i);
+            }
+            mask = mask << 2;
+        }
+        return ret;
+    }
+
     /**
      * cmp 对比的结果
      * times 16一组的比较次数
      * chain_idx 桶编号（Look传入的，未AltIndex前的，该桶及其平行溢出链排在前面）
      * tag 指纹
      */
-    char* LookupValue(int cmp, int times, size_t chain_idx, uint32_t tag) const {
-        int tag_index = (int)log2(cmp / 3) / log2(4);
-        tag_index += times * 16;
+    void LookupValue(uint32_t cmp, int times, size_t chain_idx, uint32_t tag, vector<char*> &values) const{
+        vector<char*> ret;
+        vector<int> tag_indexs = cmp_to_tag_id(cmp);
+        char *value = NULL;
+        for (int i=0; i<tag_indexs.size(); i++) {
+            int tag_index = tag_indexs.at(i);
+            tag_index += times * 16;
 
-        // 计算一个segment中
-        int a_chains_tag_num = chain_capacity * kTagsPerBucket;
-        int bucket_id, chain_id, tag_id;
-        if (tag_index < a_chains_tag_num)
-        {
-            bucket_id = (int)chain_idx;
+            // 计算一个segment中
+            int a_chains_tag_num = chain_capacity * kTagsPerBucket;
+            int bucket_id, chain_id, tag_id;
+            if (tag_index < a_chains_tag_num)
+            {
+                bucket_id = (int)chain_idx;
+            }
+            else
+            {
+                tag_index -= a_chains_tag_num;
+                bucket_id = AltIndex(chain_idx, tag);
+            }
+            chain_id = tag_index / kTagsPerBucket; // 一个桶中4个tag
+            tag_id = tag_index % kTagsPerBucket;
+            char *value_p = get_value(bucket_id, chain_id, tag_id);
+            value = new char[BYTE_PER_VALUE];
+            memcpy(value, value_p, BYTE_PER_VALUE);
+            values.push_back(value);
+            if (tag_indexs.size() > 1 && i>0) {
+                cout << "Collision fingerprint:" << cmp << "|" << times << "|" << chain_idx << "|" << tag << endl;
+            }
         }
-        else
-        {
-            tag_index -= a_chains_tag_num;
-            bucket_id = AltIndex(chain_idx, tag);
-        }
-        chain_id = tag_index / kTagsPerBucket; // 一个桶中4个tag
-        tag_id = tag_index % kTagsPerBucket;
-        char *value_p = get_value(bucket_id, chain_id, tag_id);
-        char *value = new char[BYTE_PER_VALUE];
-        memcpy(value, value_p, BYTE_PER_VALUE);
-        return value;
+        //return value; 
     }
 };

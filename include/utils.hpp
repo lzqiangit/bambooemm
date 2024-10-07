@@ -7,6 +7,7 @@
 #include <openssl/rand.h>
 #include <iostream>
 #include <cstring>
+#include <immintrin.h>
 using namespace std;
 
 # define AES_BLOCK_SIZE 16  //  明文分组的大小
@@ -33,4 +34,5 @@ void printBinary(char* data, size_t length);
 uint32_t get_value_id(const char* value);
 void print_uint64(uint64_t num);
 void print_64title();
+
 #endif

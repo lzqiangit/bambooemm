@@ -69,7 +69,7 @@ public:
     ~BambooFilter();
 
     bool Insert(const char *key, char *value);
-    bool Lookup(const char *key, char* &value) const;
+    bool Lookup(const char *key, vector<char*> &values) const;
     bool Delete(const char *key);
 
     void Extend();
@@ -117,13 +117,18 @@ bool BambooFilter::Insert(const char *key, char *value)
     return true;
 }
 
-bool BambooFilter::Lookup(const char *key, char* &value) const
+bool BambooFilter::Lookup(const char *key, vector<char*> &values) const
 {
+    // string spot0 = "1210817346,14";
+    // string spot1 = "848758525,21";
+    // if (strcmp(key,spot0.c_str()) == 0 || strcmp(key, spot1.c_str()) == 0) {
+    //     cout << endl;
+    // }
     uint32_t seg_index, bucket_index, tag;
 
     GenerateIndexTagHash(key, seg_index, bucket_index, tag);
     
-    return hash_table_[seg_index]->Lookup(bucket_index, tag, value);
+    return hash_table_[seg_index]->Lookup(bucket_index, tag, values);
 }
 
 bool BambooFilter::Delete(const char *key)

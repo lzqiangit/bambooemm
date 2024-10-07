@@ -166,6 +166,16 @@ int cmp_to_tag_id(int cmp) {
 
 int main(int argc, char const *argv[])
 {
-    cout << cmp_to_tag_id(3) << endl;
+    uint16_t num = 123;
+    uint16_t mask = 0x8000;
+    for(int j=0; j<16; j++) {
+        if (mask & num) {
+            cout << 1;
+        } else {
+            cout << 0;
+        }
+        mask = mask >> 1;
+    }
+    cout << endl;
     return 0;
 }

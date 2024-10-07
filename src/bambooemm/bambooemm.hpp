@@ -50,9 +50,11 @@ public:
     bool Insert(KV *kv)
     {
         uint32_t seg_index, bucket_index, tag;
-        uint32_t hashKey = BOBHash::run(kv->key, strlen(kv->key), 3);
-        char *hashKey_counter = Join(hashKey, kv->counter);
-        return bf->Insert(hashKey_counter, kv->value);
+
+        uint32_t hash_key = BOBHash::run(kv->key, strlen(kv->key), 3);
+        char *key_counter = Join(hash_key, kv->counter);
+
+        return bf->Insert(key_counter, kv->value);
     }
 
     /**
@@ -61,7 +63,7 @@ public:
     vector<char *> Query(const char *key)
     {
         vector<char *> ret;
-        char *temp;
+        char* temp;
         char *padding_value = new char[BYTE_PER_VALUE];
         uint32_t padding_num = 666666;
         memcpy(padding_value, &padding_num, BYTE_PER_VALUE);
@@ -70,10 +72,12 @@ public:
         for (int i = 0; i < max_volume; i++)
         {
             char *hashKey_counter = Join(hashKey, i);
-            if (bf->Lookup(hashKey_counter, temp))
-            {
-                ret.push_back(temp);
-            }
+            bf->Lookup(hashKey_counter, ret);
+            // char *hashKey_counter = Join(hashKey, i);
+            // if (bf->Lookup(hashKey_counter, temp))
+            // {
+            //     ret.push_back(temp);
+            // }
             // } else {
             //     ret.push_back(padding_value);
             // }
