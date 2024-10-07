@@ -121,7 +121,7 @@ private:
         uint64_t v = (*(uint64_t *)p) & kBucketMask;
 
         ((uint64_t *)p)[0] &= 0xffff000000000000;
-        ((uint64_t *)p)[0] |= is_src ? ll_isl(v, actv_bit) : ll_isn(v, actv_bit);
+        // ((uint64_t *)p)[0] |= is_src ? ll_isl(v, actv_bit) : ll_isn(v, actv_bit);
 
         uint64_t delFlag = (v & (0x001001001001ULL << actv_bit)) >> actv_bit;
         //cout << delFlag << endl;
@@ -173,9 +173,7 @@ private:
     void set_value(uint32_t bucket_id, uint32_t chain_id, uint32_t tag_id, const char *value)
     {
         char *value_p = get_value(bucket_id, chain_id, tag_id);
-        if (value_p >= get_value(1003, 0, 1) && value_p < get_value(1003, 0, 1) + 3) {
-            cout << endl << "EQU:" << *(uint32_t*)value << endl;
-        }
+
         memcpy(value_p, value, BYTE_PER_VALUE);
     }
 
@@ -282,7 +280,6 @@ public:
                     value_p = value_set + ((chain_idx * chain_capacity + insert_cur) * kTagsPerBucket + tag_idx) * BYTE_PER_VALUE;
                     SwapValue(value, value_p);
                     curtag = oldtag;
-                    cout << "KickOut" << endl;
                 }
             }
             chain_idx = AltIndex(chain_idx, curtag);
@@ -404,11 +401,16 @@ public:
      */
     void EraseEle(bool is_src, uint32_t actv_bit)
     {
+        char *p;
         int bucket_id = 0;
         for (int i = 0; i<chain_num; i++) {
             for (int j=0; j<chain_capacity; j++) {
-                char *p = data_base + i * j * bucket_size;
+                if (i==156) {
+                    cout << endl;
+                }
+                p = data_base + (i * chain_capacity + j) * bucket_size;
                 uint64_t delFlag = doErase(p, is_src, actv_bit);
+
                 eraseValue(i, j, delFlag, is_src);
             }
         }
