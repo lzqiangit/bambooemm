@@ -20,7 +20,7 @@ void extend() {
     BambooEMM bemm;
     uint32_t max_volumn = 30;
     bemm.Setup(3, 1000, max_volumn);
-    uint32_t add_count = 274;           // extend会有出现0的情况，不extend只会出现错误的value 273
+    uint32_t add_count = 273;           // extend会有出现0的情况，不extend只会出现错误的value 273
     vector<KV*> data;
     vector<char*> key;
     for (uint32_t i=0; i<add_count; i++) {

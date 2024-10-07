@@ -284,8 +284,6 @@ public:
                     curtag = oldtag;
                     cout << "KickOut" << endl;
                 }
-            } else {
-                cout << "CCCCCCCCCCCCCCCCrash:" << *(uint32_t*)value << endl;
             }
             chain_idx = AltIndex(chain_idx, curtag);
             bucket_p = data_base + (chain_idx * chain_capacity + insert_cur) * bucket_size;
@@ -508,9 +506,9 @@ public:
             value = new char[BYTE_PER_VALUE];
             memcpy(value, value_p, BYTE_PER_VALUE);
             values.push_back(value);
-            if (tag_indexs.size() > 1 && i>0) {
-                cout << "Collision fingerprint:" << cmp << "|" << times << "|" << chain_idx << "|" << tag << endl;
-            }
+            // if (tag_indexs.size() > 1 && i>0) {
+            //     cout << "Collision fingerprint:" << cmp << "|" << times << "|" << chain_idx << "|" << tag << endl;
+            // }
         }
         //return value; 
     }
