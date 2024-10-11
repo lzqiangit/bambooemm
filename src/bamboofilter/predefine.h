@@ -4,7 +4,7 @@
 #define BITS_PER_TAG 12
 #define FINGUREPRINT_MASK (0xFFFULL)
 
-#define BYTE_PER_VALUE 4    // 32bits
+#define BYTE_PER_VALUE 8 * 32    // 32¸öchar
 
 #define NUM_SEG_BITS (num_table_bits_ - BUCKETS_PER_SEG)
 #define ACTV_TAG_BIT (num_table_bits_ - INIT_TABLE_BITS)

@@ -20,7 +20,7 @@ void extend() {
     BambooEMM bemm;
     uint32_t max_volumn = 30;
     bemm.Setup(3, 1000, max_volumn);
-    uint32_t add_count = 274;           // extend会有出现0的情况，不extend只会出现错误的value 273
+    uint32_t add_count = 273;           // 273
     vector<KV*> data;
     vector<char*> key;
     for (uint32_t i=0; i<add_count; i++) {
@@ -35,8 +35,7 @@ void extend() {
             KV *kv = new KV(temp_key, temp_value, j);
             data.push_back(kv);
         }
-        key.push_back(temp_key);
-        
+        key.push_back(temp_key); 
     }
     
     for (int i=0; i<data.size(); i++) {
@@ -52,12 +51,7 @@ void extend() {
         vector<char*> ret = bemm.Query(key.at(i));
         cout << i << "\t" ;
         for (int j=0; j<ret.size(); j++) {
-            cout << *(uint32_t*)ret.at(j);
-            // if (*(uint32_t*)ret[j] != counter++) {
-            //     cout << "<ERROR> " << j;
-            //     counter--;
-            // }
-            cout <<  "|"; 
+            cout << key.at(i) << "|" << ret.at(j) << "|" << j << endl;
             
         }
         cout << endl;
@@ -65,8 +59,42 @@ void extend() {
 
 }
 
+void testValue() {
+    int n, l;
+    vector<KV*> kvList = LoadKVList(n,l);
+    BambooEMM bemm;
+    bemm.Setup(3, n/0.75, l);
+    cout << n << "|" << l << endl;
+    for (KV *kv : kvList) {
+        // cout << kv->key << "|" << kv->value << "|" << kv->counter << endl;
+        if (strcmp("key_350", kv->key) == 0 && strcmp(kv->value,"4882") == 0) {
+            cout << endl;
+        }
+        bemm.Insert(kv);
+    }
+
+    char *password = LoadKey();
+    char *dec = new char[32];
+    int decLen;
+    // query
+    for (int i=0; i<1024; i++) {
+        string key = "key_" + to_string(i);
+        cout << key << ": ";
+        vector<char*> values = bemm.Query((char*)key.c_str());
+        for (char* value : values) {
+            int len = strlen(value) <= 16 ? 16 : 32;
+            memset(dec, 0, 32);
+            aes_decrypt_string(password, value, len, dec, &decLen);
+            cout << dec << " # ";
+        }
+        cout << endl;
+    }
+
+
+}
+
 int main()
 {
-    extend();
+    testValue();
     return 0;
 }

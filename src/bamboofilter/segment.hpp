@@ -79,6 +79,11 @@ private:
         return hasvalue12(v, tag);
     }
 
+    /**
+     * p : 桶的起始地址
+     * idx : tag的index
+     * old_tag : 需要删除的tag
+     */
     static bool RemoveOnCondition(const char *p, uint32_t idx, uint32_t old_tag)
     {
         p += idx + (idx >> 1);
@@ -99,6 +104,10 @@ private:
         return true;
     }
 
+    /**
+     * p : 桶的起始地址
+     * tag : 需要删除的tag
+     */
     static bool DeleteTag(char *p, uint32_t tag)
     {
         for (size_t tag_idx = 0; tag_idx < kTagsPerBucket; tag_idx++)
@@ -185,23 +194,14 @@ private:
     bool isCrash(char* bucket_p, uint32_t tag) {
         uint32_t t = tag & kTagMask;
         for (int idx = 0; idx<4; idx++) {
-            char *p = bucket_p + (idx + (idx >> 1));
-            if ((idx & 1) == 0)
+
+            bucket_p += idx + (idx >> 1);
+            uint32_t tagp = (*((uint16_t *)bucket_p) >> ((idx & 1) << 2)) & kTagMask;
+            if (tagp == t)
             {
-                if (((uint16_t *)p)[0] & 0x0fff ^ t) {
-                    
-                } else {
-                    return true;
-                }
-            }
-            else
-            {
-                if((((uint16_t *)p)[0] >> 4) & 0x0fff ^ t) {
-                    
-                } else {
-                    return true;
-                }
-            }
+                return true;
+            } 
+            
         }
         return false;
     }
@@ -260,27 +260,28 @@ public:
 
             bool kickout = count > 0;
             // 判断是否碰撞
-            if (!isCrash(bucket_p, curtag)) {
-                for (size_t tag_idx = 0; tag_idx < kTagsPerBucket; tag_idx++)
+        // if (isCrash(bucket_p, curtag)) {
+        //     cout << "Collecion" << endl;
+        // }
+            for (size_t tag_idx = 0; tag_idx < kTagsPerBucket; tag_idx++)
+            {
+                if ( (0 == ReadTag(bucket_p, tag_idx)))
                 {
-                    if ( (0 == ReadTag(bucket_p, tag_idx)))
-                    {
-                        WriteTag(bucket_p, tag_idx, curtag);
-                        // 写入value
-                        set_value(chain_idx, insert_cur, tag_idx, value);
-                        return true;
-                    }
-                }
-
-                if (kickout)
-                {
-                    size_t tag_idx = rand() % kTagsPerBucket;
-                    uint32_t oldtag = ReadTag(bucket_p, tag_idx);
                     WriteTag(bucket_p, tag_idx, curtag);
-                    value_p = value_set + ((chain_idx * chain_capacity + insert_cur) * kTagsPerBucket + tag_idx) * BYTE_PER_VALUE;
-                    SwapValue(value, value_p);
-                    curtag = oldtag;
+                    // 写入value
+                    set_value(chain_idx, insert_cur, tag_idx, value);
+                    return true;
                 }
+            }
+
+            if (kickout)
+            {
+                size_t tag_idx = rand() % kTagsPerBucket;
+                uint32_t oldtag = ReadTag(bucket_p, tag_idx);
+                WriteTag(bucket_p, tag_idx, curtag);
+                value_p = value_set + ((chain_idx * chain_capacity + insert_cur) * kTagsPerBucket + tag_idx) * BYTE_PER_VALUE;
+                SwapValue(value, value_p);
+                curtag = oldtag;
             }
             chain_idx = AltIndex(chain_idx, curtag);
             bucket_p = data_base + (chain_idx * chain_capacity + insert_cur) * bucket_size;
@@ -320,7 +321,7 @@ public:
             value_set = new_value_set;
         }
         return Insert(chain_idx, curtag, value);
-    }
+    }  
 
     /**
      * chain_idx : bucket_index
@@ -375,6 +376,7 @@ public:
     bool Delete(uint32_t chain_idx, uint32_t tag)
     {
         uint32_t chain_idx2 = AltIndex(chain_idx, tag);
+        // 遍历两个可能链的每个桶
         for (int i = 0; i < chain_capacity; i++)
         {
             char *p = data_base + (chain_idx * chain_capacity + i) * bucket_size;

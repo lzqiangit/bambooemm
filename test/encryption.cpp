@@ -10,9 +10,29 @@ using namespace std;
  * 找到Xor代码中的加密方法，然后加密 k -> ek 后拼接存入BambooFilter中
  */
 void test();
+char* join(char *key, char *value, int counter);
 int main(int argc, char const *argv[])
 {
-    test();
+    string keyStr = "key_0";
+    string valueStr = "12";
+    int counter = 12;
+    string passwordStr = "dfasfa";
+    char *password = (char*)passwordStr.c_str();
+
+
+    char *kvc = join((char*)keyStr.c_str(), (char*)valueStr.c_str(), counter);
+
+    char *enc = new char[32];
+    int encLen;
+    int ret = aes_encrypt_string(password, kvc, strlen(kvc), enc, &encLen);
+
+    char *dec = new char[32];
+    cout << encLen << "|" << strlen(enc) << endl;
+    int decLen;
+    aes_decrypt_string(password, enc, 16, dec, &decLen);
+
+    cout << dec << "|" << strlen(dec) << endl;
+
     // unsigned char* key = AESGen(AES_KEY_LENGTH);
     // cout << "key: " << key << endl;
 
@@ -25,13 +45,41 @@ int main(int argc, char const *argv[])
     return 0;
 }
 
-void test() {
-    unsigned char* key = LoadKey();
-    string str = "hello open ssl";
-    unsigned char* txt = (unsigned char*)str.c_str();
+char* join(char *key, char *value, int counter) {
+    string keyStr = key;
+    string valueStr = value;
     
-    for (int i=0; i<10; i++) {
-        unsigned char* encKey = AESEnc(key, txt);
-        //printBinary( encKey, strlen( (char*)encKey) );
-    }
+    string ret = keyStr + '|' + valueStr + '|' + to_string(counter);
+    cout << ret << endl;
+    char *retCStr = new char[ret.length() + 1];
+    memset(retCStr, 0, ret.length() + 1);
+    memcpy(retCStr, (char*)ret.c_str(), ret.length());
+    return retCStr;
+}
+
+void test() {
+    
+    string keyStr = "helloaes";
+    char *key = (char*)keyStr.c_str();
+
+
+    string inStr = "this is aallllllatest123456789!";
+    char *in = (char*)inStr.c_str();
+    char *enc = new char[4096];
+    int encLen;
+
+    cout << "key:" << key << endl;
+    cout << "data:" << in << "|" << strlen(in) + 1<< endl;
+    int ret = aes_encrypt_string(key, in, strlen(in), enc, &encLen);
+    cout << "enc:" << enc << "|" << encLen << endl;
+
+    char *dec = new char[4096];
+    int decLen;
+    ret = aes_decrypt_string(key, enc, encLen, dec, &decLen);
+    cout << "dec:" << dec << "|" << decLen + 1 << endl;
+    /**
+     * 密文长度总之会填充至16的整数倍
+     */
+    cout << sizeof(char*) << endl;
+
 }

@@ -16,10 +16,13 @@ private:
     unsigned char *KI;
     char *value;
     int max_volume, elem_num;
+    char *password;
+    
 
 public:
     BambooEMM()
     {
+        password = LoadKey();
     }
     ~BambooEMM()
     {
@@ -27,15 +30,15 @@ public:
 
     bool Setup(int level, int n, int l)
     {
-
+        cout << "password: " << password << endl;
         bf = new BambooFilter(upperpower2(12500), 2);
-        KI = LoadKey();
         elem_num = n;
         max_volume = l;
         return true;
     }
 
-    bool LoadMM(vector<KV *> mm) {
+    bool LoadMM(vector<KV *> mm)
+    {
         for (KV *kv : mm)
         {
             uint32_t id = get_value_id(kv->value);
@@ -52,9 +55,23 @@ public:
         uint32_t seg_index, bucket_index, tag;
 
         uint32_t hash_key = BOBHash::run(kv->key, strlen(kv->key), 3);
-        char *key_counter = Join(hash_key, kv->counter);
+        char *key_counter = SpliceKey(hash_key, kv->counter);
+        char *kvc = SpliceValue(kv);
+        if (strlen(kvc) > 32) {
+            cout << "<ERROR> key||value||counter 拼接长度超过32!" << endl;
+        }
+        char *enc_kvc = new char[32];
+        memset(enc_kvc, 0, 32);
+        int encLen;
+        if( -1 == aes_encrypt_string(password, kvc, strlen(kvc), enc_kvc, &encLen) ) {
+            cout << "<ERROR> key||value||counter 加密失败!" << endl;
+        }      
 
-        return bf->Insert(key_counter, kv->value);
+        bool ret = bf->Insert(key_counter, enc_kvc);
+        delete []key_counter;
+        delete []kvc;
+        delete []enc_kvc;
+        return ret;
     }
 
     /**
@@ -63,7 +80,7 @@ public:
     vector<char *> Query(const char *key)
     {
         vector<char *> ret;
-        char* temp;
+        char *temp;
         char *padding_value = new char[BYTE_PER_VALUE];
         uint32_t padding_num = 666666;
         memcpy(padding_value, &padding_num, BYTE_PER_VALUE);
@@ -71,7 +88,7 @@ public:
         uint32_t hashKey = BOBHash::run(key, strlen(key), 3);
         for (int i = 0; i < max_volume; i++)
         {
-            char *hashKey_counter = Join(hashKey, i);
+            char *hashKey_counter = SpliceKey(hashKey, i);
             bf->Lookup(hashKey_counter, ret);
             // char *hashKey_counter = Join(hashKey, i);
             // if (bf->Lookup(hashKey_counter, temp))
@@ -90,27 +107,28 @@ private:
      * 将key同counter拼接，返回拼接后的字符串
      * 注意不会将key哈希
      */
-    char *Join(uint32_t key, int counter)
+    char *SpliceKey(uint32_t key, int counter)
     {
-        // cout << key << endl;
-        int lenKey = LenOfUInt(key);
-        char *keyCStr = new char[lenKey + 1];
-        memset(keyCStr, 0, lenKey + 1);
-        sprintf(keyCStr, "%u", key);
+        string keyStr = to_string(key);
+        string counterStr = to_string(counter);
+        string keyCounterStr = keyStr + "|" + counterStr;
+        char *retCStr = new char[keyCounterStr.length() + 1];
+        memset(retCStr, 0, keyCounterStr.length() + 1);
+        memcpy(retCStr, (char *)keyCounterStr.c_str(), keyCounterStr.length());
+        return retCStr;
+    }
 
-        int lenTail = LenOfInt(counter) + 1;
-        char *tailCStr = new char[lenTail + 1];
-        memset(tailCStr, 0, lenTail);
-        sprintf(tailCStr, ",%d", counter);
+    char *SpliceValue(KV *kv){
 
-        char *ret = new char[lenKey + lenTail + 1];
-        memset(ret, 0, lenKey + lenTail + 1);
-        memcpy(ret, keyCStr, lenKey);
-        memcpy(ret + lenKey, tailCStr, lenTail);
+        string keyStr = kv->key;
+        string valueStr = kv->value;
 
-        delete keyCStr;
-        delete tailCStr;
-        return ret;
+        string ret = keyStr + '|' + valueStr + '|' + to_string(kv->counter);
+        int retLen = ret.length();
+        char *retCStr = new char[retLen + 1];
+        memset(retCStr, 0, retLen + 1);
+        memcpy(retCStr, (char *)ret.c_str(), retLen);
+        return retCStr;
     }
 
     BambooFilter *getEMM()

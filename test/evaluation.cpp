@@ -47,9 +47,10 @@ int main(int argc, char *argv[])
         }
 
         auto start_time = NowNanos();
+        vector<char*> temp;
         for (uint64_t added = 0; added < add_count; added++)
         {
-            bbf->Lookup(to_add[added].c_str(), value);
+            bbf->Lookup(to_add[added].c_str(), temp);
         }
         cout << ((add_count * 1000.0) / static_cast<double>(NowNanos() - start_time)) << endl;
     }
