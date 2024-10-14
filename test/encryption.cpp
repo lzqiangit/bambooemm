@@ -13,9 +13,9 @@ void test();
 char* join(char *key, char *value, int counter);
 int main(int argc, char const *argv[])
 {
-    string keyStr = "key_0";
-    string valueStr = "12";
-    int counter = 12;
+    string keyStr = "key_727";
+    string valueStr = "10775";
+    int counter = 11;
     string passwordStr = "dfasfa";
     char *password = (char*)passwordStr.c_str();
 
@@ -29,7 +29,9 @@ int main(int argc, char const *argv[])
     char *dec = new char[32];
     cout << encLen << "|" << strlen(enc) << endl;
     int decLen;
-    aes_decrypt_string(password, enc, 16, dec, &decLen);
+    cout << strlen(enc) << endl;
+    int len = strlen(enc) <= 16 ? 16 : 32;
+    aes_decrypt_string(password, enc, len, dec, &decLen);
 
     cout << dec << "|" << strlen(dec) << endl;
 
@@ -63,7 +65,7 @@ void test() {
     char *key = (char*)keyStr.c_str();
 
 
-    string inStr = "this is aallllllatest123456789!";
+    string inStr = "key_727|10775|11";
     char *in = (char*)inStr.c_str();
     char *enc = new char[4096];
     int encLen;

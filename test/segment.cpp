@@ -59,6 +59,31 @@ void extend() {
 
 }
 
+char *SpliceValue(KV *kv){
+
+        string keyStr = kv->key;
+        string valueStr = kv->value;
+
+        int len = keyStr.length() + valueStr.length() + LenOfInt(kv->counter) + 2;
+        int padLen = 0;
+
+        string ret = keyStr + '|' + valueStr + '|';
+        if (len <= 16) {
+            padLen = 17 - len;
+            char *padCStr = new char[padLen + 1];
+            memset(padCStr, '0', padLen);
+            memset(padCStr + padLen, 0, 1);
+            string padStr = padCStr;
+            ret = ret + padStr;
+        } 
+        ret = ret + to_string(kv->counter);
+        int retLen = ret.length();
+        char *retCStr = new char[retLen + 1];
+        memset(retCStr, 0, retLen + 1);
+        memcpy(retCStr, (char *)ret.c_str(), retLen);
+        return retCStr;
+    }
+
 void testValue() {
     int n, l;
     vector<KV*> kvList = LoadKVList(n,l);
@@ -77,20 +102,26 @@ void testValue() {
     char *dec = new char[32];
     int decLen;
     // query
+    int counter = 0;
     for (int i=0; i<1024; i++) {
         string key = "key_" + to_string(i);
-        cout << key << ": ";
+        //cout << key << " : ";
+        
         vector<char*> values = bemm.Query((char*)key.c_str());
-        for (char* value : values) {
-            int len = strlen(value) <= 16 ? 16 : 32;
+        for (int i=0; i<values.size(); i++) {
+            char *value = values.at(i);
             memset(dec, 0, 32);
-            aes_decrypt_string(password, value, len, dec, &decLen);
-            cout << dec << " # ";
+            aes_decrypt_string(password, value, BYTE_PER_VALUE, dec, &decLen);
+            KV *kv = new KV((char*)key.c_str(), (char*)to_string(counter++).c_str(), i);
+            char *aim = SpliceValue(kv);
+            if (strcmp(aim, dec) != 0) {
+                cout << key << ":" << dec << "\t aim: " << aim << endl;
+                --counter;
+            }
+            // cout << dec << " # ";   
         }
-        cout << endl;
+        //cout << endl;
     }
-
-
 }
 
 int main()

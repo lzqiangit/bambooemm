@@ -60,12 +60,15 @@ public:
         if (strlen(kvc) > 32) {
             cout << "<ERROR> key||value||counter 拼接长度超过32!" << endl;
         }
-        char *enc_kvc = new char[32];
-        memset(enc_kvc, 0, 32);
+        char *enc_kvc = new char[BYTE_PER_VALUE];
+        memset(enc_kvc, 0, BYTE_PER_VALUE);
         int encLen;
         if( -1 == aes_encrypt_string(password, kvc, strlen(kvc), enc_kvc, &encLen) ) {
             cout << "<ERROR> key||value||counter 加密失败!" << endl;
         }      
+        if (encLen != BYTE_PER_VALUE) {
+            cout << "<ERROR> 密文长度错误!" << endl; 
+        }
 
         bool ret = bf->Insert(key_counter, enc_kvc);
         delete []key_counter;
@@ -123,7 +126,19 @@ private:
         string keyStr = kv->key;
         string valueStr = kv->value;
 
-        string ret = keyStr + '|' + valueStr + '|' + to_string(kv->counter);
+        int len = keyStr.length() + valueStr.length() + LenOfInt(kv->counter) + 2;
+        int padLen = 0;
+
+        string ret = keyStr + '|' + valueStr + '|';
+        if (len <= 16) {
+            padLen = 17 - len;
+            char *padCStr = new char[padLen + 1];
+            memset(padCStr, '0', padLen);
+            memset(padCStr + padLen, 0, 1);
+            string padStr = padCStr;
+            ret = ret + padStr;
+        } 
+        ret = ret + to_string(kv->counter);
         int retLen = ret.length();
         char *retCStr = new char[retLen + 1];
         memset(retCStr, 0, retLen + 1);

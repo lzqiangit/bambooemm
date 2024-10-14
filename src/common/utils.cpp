@@ -313,13 +313,13 @@ int aes_decrypt_string(char *_pPassword, char *_pInput, int _InLen, char *_pOutB
  
     /* Update cipher text */
     if (!EVP_DecryptUpdate(pDe_ctx, (unsigned char*)_pOutBuf, &outlen, (unsigned char*)_pInput, _InLen)) {   //处理数据
-        cout << "Error,ENCRYPR_UPDATE:" << endl;
+        cout << "Error,DEC_UPDATE:" << endl;
         goto clean;
     }
  
     /* updates the remaining bytes */
     if (EVP_DecryptFinal_ex(pDe_ctx, (unsigned char*)(_pOutBuf + outlen), &flen) != 1) {    //完成解密操作，处理剩余字节
-        cout << "Error,ENCRYPT_FINAL!" << endl;
+        cout << "Error,DEC_FINAL!" << endl;
         goto clean;
     }
  
