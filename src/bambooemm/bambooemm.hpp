@@ -129,7 +129,7 @@ private:
         int len = keyStr.length() + valueStr.length() + LenOfInt(kv->counter) + 2;
         int padLen = 0;
 
-        string ret = keyStr + '|' + valueStr + '|';
+        string ret = keyStr + '|';
         if (len <= 16) {
             padLen = 17 - len;
             char *padCStr = new char[padLen + 1];
@@ -138,7 +138,7 @@ private:
             string padStr = padCStr;
             ret = ret + padStr;
         } 
-        ret = ret + to_string(kv->counter);
+        ret = ret + to_string(kv->counter) + "|" +valueStr;
         int retLen = ret.length();
         char *retCStr = new char[retLen + 1];
         memset(retCStr, 0, retLen + 1);
