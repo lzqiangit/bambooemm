@@ -19,7 +19,7 @@ void Extend(Segment *src, int act_bit, int table_size)
 void extend() {
     BambooEMM bemm;
     uint32_t max_volumn = 30;
-    bemm.Setup(3, 1000, max_volumn);
+    bemm.Setup(2, 10000, max_volumn, LoadKey());
     uint32_t add_count = 273;           // 273
     vector<KV*> data;
     vector<char*> key;
@@ -88,7 +88,7 @@ void testValue() {
     int n, l;
     vector<KV*> kvList = LoadKVList(n,l);
     BambooEMM bemm;
-    bemm.Setup(3, n/0.75, l);
+    bemm.Setup(2, (int)n/0.75, l, LoadKey());
     cout << n << "|" << l << endl;
     for (KV *kv : kvList) {
         // cout << kv->key << "|" << kv->value << "|" << kv->counter << endl;
@@ -112,13 +112,13 @@ void testValue() {
             char *value = values.at(i);
             memset(dec, 0, 32);
             aes_decrypt_string(password, value, BYTE_PER_VALUE, dec, &decLen);
-            //KV *kv = new KV((char*)key.c_str(), (char*)to_string(counter++).c_str(), i);
-            // char *aim = SpliceValue(kvList.at(counter++));
-            // if (strcmp(aim, dec) != 0) {
-            //     cout << key << ":" << dec << "\t aim: " << aim << endl;
-            //     --counter;
-            // }
-            cout << dec << " # ";   
+            KV *kv = new KV((char*)key.c_str(), (char*)to_string(counter++).c_str(), i);
+            char *aim = SpliceValue(kvList.at(counter++));
+            if (strcmp(aim, dec) != 0) {
+                cout << key << ":" << dec << "\t aim: " << aim << endl;
+                --counter;
+            }
+            // cout << dec << " # ";   
         }
         cout << endl;
     }

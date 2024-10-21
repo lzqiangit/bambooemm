@@ -20,18 +20,17 @@ private:
     
 
 public:
-    BambooEMM()
-    {
-        password = LoadKey();
+    BambooEMM(){
     }
     ~BambooEMM()
     {
     }
 
-    bool Setup(int level, int n, int l)
+    bool Setup(int split_condition_param, int n, int l, char *password)
     {
-        cout << "password: " << password << endl;
-        bf = new BambooFilter(upperpower2(12500), 2);
+        this->password = password;
+        uint64_t volumn = n > 8192 ? n : 8192;
+        bf = new BambooFilter(upperpower2(volumn), split_condition_param);
         elem_num = n;
         max_volume = l;
         return true;
@@ -105,6 +104,11 @@ public:
         return ret;
     }
 
+    BambooFilter *getEMM()
+    {
+        return bf;
+    }
+
 private:
     /**
      * 将key同counter拼接，返回拼接后的字符串
@@ -144,11 +148,6 @@ private:
         memset(retCStr, 0, retLen + 1);
         memcpy(retCStr, (char *)ret.c_str(), retLen);
         return retCStr;
-    }
-
-    BambooFilter *getEMM()
-    {
-        return bf;
     }
 };
 

@@ -290,7 +290,6 @@ public:
         insert_cur++;
         if (insert_cur >= chain_capacity)
         {
-            cout << "ADD CHAIN" << endl;
             char *old_data_base = data_base;
             uint32_t old_chain_len = chain_capacity * bucket_size;
             // 计算初始valueset的长度

@@ -35,3 +35,8 @@ add_executable(segment segment.cpp)
 target_include_directories(segment PUBLIC ${HEADPATH})
 target_link_libraries(segment PUBLIC header utils hash)
 target_compile_options(segment PUBLIC "-mavx2")
+
+add_executable(client client.cpp)
+target_include_directories(client PUBLIC ${HEADPATH})
+target_link_libraries(client PUBLIC header utils hash)
+target_compile_options(client PUBLIC "-mavx2")
