@@ -4,9 +4,9 @@
 #define BITS_PER_TAG 12
 #define FINGUREPRINT_MASK (0xFFFULL)
 
-#define BYTE_PER_VALUE 32    // 32��char
+#define BYTE_PER_VALUE 32    // 32个char
 #define BITS_PER_VALUE 8 * BYTE_PER_VALUE
-
+#define RANDOM_NUM_LEN 2    // 拼接后的value中拼接的随机数的长度
 
 #define NUM_SEG_BITS (num_table_bits_ - BUCKETS_PER_SEG)
 #define ACTV_TAG_BIT (num_table_bits_ - INIT_TABLE_BITS)

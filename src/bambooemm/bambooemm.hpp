@@ -6,6 +6,7 @@
 #include "utils.hpp"
 #include <iostream>
 #include <string>
+#include <random>
 using namespace std;
 
 class BambooEMM
@@ -57,16 +58,16 @@ public:
         char *key_counter = SpliceKey(hash_key, kv->counter);
         char *kvc = SpliceValue(kv);
         if (strlen(kvc) > 32) {
-            cout << "<ERROR> key||value||counter 拼接长度超过32!" << endl;
+            cout << "<ERROR> key||value||counter 鎷兼帴闀垮害瓒呰繃32!" << endl;
         }
         char *enc_kvc = new char[BYTE_PER_VALUE];
         memset(enc_kvc, 0, BYTE_PER_VALUE);
         int encLen;
         if( -1 == aes_encrypt_string(password, kvc, strlen(kvc), enc_kvc, &encLen) ) {
-            cout << "<ERROR> key||value||counter 加密失败!" << endl;
+            cout << "<ERROR> key||value||counter 鍔犲瘑澶辫触!" << endl;
         }      
         if (encLen != BYTE_PER_VALUE) {
-            cout << "<ERROR> 密文长度错误!" << endl; 
+            cout << "<ERROR> 瀵嗘枃闀垮害閿欒!" << endl; 
         }
 
         bool ret = bf->Insert(key_counter, enc_kvc);
@@ -77,7 +78,7 @@ public:
     }
 
     /**
-     * query前是否需要加密？
+     * query鍓嶆槸鍚﹂渶瑕佸姞瀵嗭紵
      */
     vector<char *> Query(const char *key)
     {
@@ -111,8 +112,8 @@ public:
 
 private:
     /**
-     * 将key同counter拼接，返回拼接后的字符串
-     * 注意不会将key哈希
+     * 灏唊ey鍚宑ounter鎷兼帴锛岃繑鍥炴嫾鎺ュ悗鐨勫瓧绗︿覆
+     * 娉ㄦ剰涓嶄細灏唊ey鍝堝笇
      */
     char *SpliceKey(uint32_t key, int counter)
     {
@@ -125,7 +126,7 @@ private:
         return retCStr;
     }
 
-    char *SpliceValue(KV *kv){
+    char *SpliceValue(KV *kv, int retRandom = 0){
 
         string keyStr = kv->key;
         string valueStr = kv->value;
@@ -134,7 +135,7 @@ private:
         int padLen = 0;
 
         string ret = keyStr + '|';
-        if (len <= 16) {
+        if (len <= 13) {
             padLen = 17 - len;
             char *padCStr = new char[padLen + 1];
             memset(padCStr, '0', padLen);
@@ -142,12 +143,49 @@ private:
             string padStr = padCStr;
             ret = ret + padStr;
         } 
-        ret = ret + to_string(kv->counter) + "|" +valueStr;
+        ret = ret + to_string(kv->counter) + "|" +valueStr + "|" + RandomNumStr(RANDOM_NUM_LEN, retRandom);
         int retLen = ret.length();
         char *retCStr = new char[retLen + 1];
         memset(retCStr, 0, retLen + 1);
         memcpy(retCStr, (char *)ret.c_str(), retLen);
         return retCStr;
+    }
+
+    void ResolveValue(char *spliceValue, char *&key, int &counter, char *&value, int &random) {
+        string spliceValueStr = spliceValue;
+        int star = 0;
+        int end = spliceValueStr.find('|');
+        string substring = spliceValueStr.substr(star, end - star);
+        key = copy_const_str(substring.c_str());
+
+        star = end + 1;
+        end = spliceValueStr.find('|', star);
+        char* counterCStr = copy_const_str(spliceValueStr.substr(star, end - star).c_str());
+        counter = atoi(counterCStr);
+
+        star = end + 1;
+        end = spliceValueStr.find('|', star);
+        value = copy_const_str(spliceValueStr.substr(star, end - star).c_str());
+        
+        star = end + 1;
+        end = spliceValueStr.find('|', star);
+        char* randomCStr = copy_const_str(spliceValueStr.substr(star, end - star).c_str());
+        random = atoi(randomCStr);
+    }
+
+    char* RandomNumStr(int len, int pre) {
+        int next = pre;
+        random_device rd;
+        mt19937 gen(rd());
+        uniform_int_distribution<> dis(pow(10, len-1), pow(10, len) - 1);
+
+        do {
+            next = dis(gen);
+        } while (pre == next); 
+        char *nextStr = new char[len + 1];
+        memset(nextStr, 0, len + 1);
+        sprintf(nextStr, "%d", next);
+        return nextStr;
     }
 };
 

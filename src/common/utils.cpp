@@ -334,3 +334,11 @@ clean:
  
     return ret;
 }
+
+char* copy_const_str(const char* cstr) {
+    int len = strlen(cstr);
+    char* cpy = new char[len + 1];
+    memset(cpy, 0, len + 1);
+    memcpy(cpy, cstr, len);
+    return cpy;
+}

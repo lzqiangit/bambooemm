@@ -28,12 +28,12 @@ Client::~Client()
 }
 
 void Client::SetupEMM(vector<KV*> kvList, int n, int l) {
-    vector<KV*> maxCounterKVList;           // ´æ´¢Ã¿¸ökeyÖÐcounter×î´óµÄÔªËØ
+    vector<KV*> maxCounterKVList;           // å­˜å‚¨æ¯ä¸ªkeyä¸­counteræœ€å¤§çš„å…ƒç´ 
     this->bemm = new BambooEMM();
     this->bemm->Setup(2, n/0.75, l, LoadKey());
     char *tempKey = kvList.at(0)->key;
     for (int i=0; i<kvList.size(); i++) {
-        this->bemm->Insert(kvList.at(i));             // counter±ØÐë´Ó0¿ªÊ¼¶øÇÒÁ¬Ðø yes
+        this->bemm->Insert(kvList.at(i));             // counterå¿…é¡»ä»Ž0å¼€å§‹è€Œä¸”è¿žç»­ yes
         if (i == kvList.size() - 1) {
             maxCounterKVList.push_back(kvList.at(i));
             continue;
