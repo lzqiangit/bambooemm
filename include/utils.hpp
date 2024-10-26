@@ -31,7 +31,5 @@ uint32_t get_value_id(const char* value);
 void print_uint64(uint64_t num);
 void print_64title();
 
-int aes_encrypt_string(char *_pPassword, char *_pInput, int _InLen, char *_pOutBuf, int *_pOutLen);
-int aes_decrypt_string(char *_pPassword, char *_pInput, int _InLen, char *_pOutBuf, int *_pOutLen);
 char* copy_const_str(const char* cstr);
 #endif

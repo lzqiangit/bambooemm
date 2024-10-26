@@ -74,6 +74,7 @@ public:
 
     void Extend();
     void Compress();
+    void Encrypt(char *password);
 };
 
 BambooFilter::BambooFilter(uint32_t capacity, uint32_t split_condition_param)
@@ -181,4 +182,10 @@ void BambooFilter::Compress()
     src->Absorb(dst);
     delete dst;
     hash_table_.pop_back();
+}
+
+void BambooFilter::Encrypt(char *password) {
+    for (Segment *segment : hash_table_) {
+        segment->Encrypt(password);
+    }
 }

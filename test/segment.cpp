@@ -45,7 +45,7 @@ void extend() {
         bemm.Insert(data[i]);
     }
 
-// ²éÑ¯
+// ï¿½ï¿½Ñ¯
     uint32_t counter = 0;
     for (int i=0; i<key.size(); i++) {
         vector<char*> ret = bemm.Query(key.at(i));
@@ -58,31 +58,6 @@ void extend() {
     }
 
 }
-
-char *SpliceValue(KV *kv){
-
-        string keyStr = kv->key;
-        string valueStr = kv->value;
-
-        int len = keyStr.length() + valueStr.length() + LenOfInt(kv->counter) + 2;
-        int padLen = 0;
-
-        string ret = keyStr + '|';
-        if (len <= 16) {
-            padLen = 17 - len;
-            char *padCStr = new char[padLen + 1];
-            memset(padCStr, '0', padLen);
-            memset(padCStr + padLen, 0, 1);
-            string padStr = padCStr;
-            ret = ret + padStr;
-        } 
-        ret = ret + to_string(kv->counter) + "|" +valueStr;
-        int retLen = ret.length();
-        char *retCStr = new char[retLen + 1];
-        memset(retCStr, 0, retLen + 1);
-        memcpy(retCStr, (char *)ret.c_str(), retLen);
-        return retCStr;
-    }
 
 void testValue() {
     int n, l;

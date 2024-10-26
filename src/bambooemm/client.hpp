@@ -27,6 +27,9 @@ Client::~Client()
 {
 }
 
+/**
+ * 传入初始数据的EMM，以及kv总数和最大最大容量l
+ */
 void Client::SetupEMM(vector<KV*> kvList, int n, int l) {
     vector<KV*> maxCounterKVList;           // 存储每个key中counter最大的元素
     this->bemm = new BambooEMM();
@@ -44,6 +47,8 @@ void Client::SetupEMM(vector<KV*> kvList, int n, int l) {
         }
     }
     MappingStep(maxCounterKVList, l);
+    // 加密
+    bemm->Encrypt(LoadKey());
 }
 
 void Client::MappingStep(vector<KV*> kvList, int l) {

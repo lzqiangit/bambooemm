@@ -4,8 +4,9 @@
 
 #include <iostream>
 
-#include "bamboofilter/bitsutil.h"
-#include "bamboofilter/predefine.h"
+#include "keyvaluetools.hpp"
+#include "bitsutil.h"
+#include "predefine.h"
 
 #include "utils.hpp"
 
@@ -27,8 +28,8 @@ private:
 
 private:
     char *temp;
-    const uint32_t chain_num;   // ¶ÎÖĞµÄÍ°µÄÊıÁ¿
-    uint32_t chain_capacity; // Òç³öÁ´ + 1£¨³õÊ¼¶Î£©
+    const uint32_t chain_num;   // æ®µä¸­çš„æ¡¶çš„æ•°é‡
+    uint32_t chain_capacity; // æº¢å‡ºé“¾ + 1ï¼ˆåˆå§‹æ®µï¼‰
     uint32_t total_size;
     uint32_t insert_cur;
     char *data_base;
@@ -45,9 +46,9 @@ private:
     }
 
     /**
-     * p Í°µÄÆğÊ¼µØÖ·
-     * idx tag±àºÅ(0~3)
-     * tag ĞèÒªĞ´ÈëµÄÖ¸ÎÆ
+     * p æ¡¶çš„èµ·å§‹åœ°å€
+     * idx tagç¼–å·(0~3)
+     * tag éœ€è¦å†™å…¥çš„æŒ‡çº¹
      */
     static void WriteTag(char *p, uint32_t idx, uint32_t tag)
     {
@@ -80,9 +81,9 @@ private:
     }
 
     /**
-     * p : Í°µÄÆğÊ¼µØÖ·
-     * idx : tagµÄindex
-     * old_tag : ĞèÒªÉ¾³ıµÄtag
+     * p : æ¡¶çš„èµ·å§‹åœ°å€
+     * idx : tagçš„index
+     * old_tag : éœ€è¦åˆ é™¤çš„tag
      */
     static bool RemoveOnCondition(const char *p, uint32_t idx, uint32_t old_tag)
     {
@@ -105,8 +106,8 @@ private:
     }
 
     /**
-     * p : Í°µÄÆğÊ¼µØÖ·
-     * tag : ĞèÒªÉ¾³ıµÄtag
+     * p : æ¡¶çš„èµ·å§‹åœ°å€
+     * tag : éœ€è¦åˆ é™¤çš„tag
      */
     static bool DeleteTag(char *p, uint32_t tag)
     {
@@ -121,9 +122,9 @@ private:
     }
 
     /**
-     * p ÆğÊ¼µØÖ·
-     * is_src trueÔòÁô0 falseÔòÁô1
-     * actv_bit num_table_bits_ - INIT_TABLE_BITS £¬ num_table_bits_ = num_seg_bits_ + BUCKETS_PER_SEG
+     * p èµ·å§‹åœ°å€
+     * is_src trueåˆ™ç•™0 falseåˆ™ç•™1
+     * actv_bit num_table_bits_ - INIT_TABLE_BITS ï¼Œ num_table_bits_ = num_seg_bits_ + BUCKETS_PER_SEG
      */
     static uint64_t doErase(char *p, bool is_src, uint32_t actv_bit)
     {
@@ -165,24 +166,23 @@ private:
 
     static __m256i unpack12to16(const char *p)
     {
-        __m256i v = _mm256_loadu_si256((const __m256i *)(p - 4)); // ¼´Îª´Óp-4¿ªÊ¼µ¼Èë32¸ö×Ö½ÚÊı¾İµ½vÖĞ£¬ÎªÊ²Ã´ÒªÒÆ¶¯ËÄ¸ö£¿   256/12 =
+        __m256i v = _mm256_loadu_si256((const __m256i *)(p - 4)); // å³ä¸ºä»p-4å¼€å§‹å¯¼å…¥32ä¸ªå­—èŠ‚æ•°æ®åˆ°vä¸­ï¼Œä¸ºä»€ä¹ˆè¦ç§»åŠ¨å››ä¸ªï¼Ÿ   256/12 =
 
         const __m256i bytegrouping =
             _mm256_setr_epi8(4, 5, 5, 6, 7, 8, 8, 9, 10, 11, 11, 12, 13, 14, 14, 15,
                              0, 1, 1, 2, 3, 4, 4, 5, 6, 7, 7, 8, 9, 10, 10, 11);
         v = _mm256_shuffle_epi8(v, bytegrouping);
 
-        __m256i hi = _mm256_srli_epi16(v, 4);                            // // ÒÔ16Îªµ¥Î»£¬Âß¼­ÓÒÒÆ£¬×¢Òâx86Ğ¡¶Ë¶ÔÆë
-        __m256i lo = _mm256_and_si256(v, _mm256_set1_epi32(0x00000FFF)); // °´Î»Óë 32, ×¢Òâ´óĞ¡¶Ë¶ÔÆë 11111111 00001111 00000000 00000000
+        __m256i hi = _mm256_srli_epi16(v, 4);                            // // ä»¥16ä¸ºå•ä½ï¼Œé€»è¾‘å³ç§»ï¼Œæ³¨æ„x86å°ç«¯å¯¹é½
+        __m256i lo = _mm256_and_si256(v, _mm256_set1_epi32(0x00000FFF)); // æŒ‰ä½ä¸ 32, æ³¨æ„å¤§å°ç«¯å¯¹é½ 11111111 00001111 00000000 00000000
 
-        return _mm256_blend_epi16(lo, hi, 0b10101010); // µÚÈı¸ö²ÎÊı´ÓÓÒÏò×ó´ú±í¸´ÖÆµ½µÄÄ¿±êÊıÖµµÄ´ÓµÍµ½¸ßÎ»
-                                                       // 0±íÊ¾¸´ÖÆµÚÒ»¸ö²ÎÊıµÄ¶ÔÓ¦Î»ÖÃ£¬1±íÊ¾¸´ÖÆµÚ¶ş¸ö²ÎÊıµÄ¶ÔÓ¦Î»ÖÃ
+        return _mm256_blend_epi16(lo, hi, 0b10101010); // ç¬¬ä¸‰ä¸ªå‚æ•°ä»å³å‘å·¦ä»£è¡¨å¤åˆ¶åˆ°çš„ç›®æ ‡æ•°å€¼çš„ä»ä½åˆ°é«˜ä½
+                                                       // 0è¡¨ç¤ºå¤åˆ¶ç¬¬ä¸€ä¸ªå‚æ•°çš„å¯¹åº”ä½ç½®ï¼Œ1è¡¨ç¤ºå¤åˆ¶ç¬¬äºŒä¸ªå‚æ•°çš„å¯¹åº”ä½ç½®
     }
 
     void set_value(uint32_t bucket_id, uint32_t chain_id, uint32_t tag_id, const char *value)
     {
         char *value_p = get_value(bucket_id, chain_id, tag_id);
-
         memcpy(value_p, value, BYTE_PER_VALUE);
     }
 
@@ -206,6 +206,27 @@ private:
         return false;
     }
 
+    /**
+     * åˆ¤æ–­valuePä½ç½®æ˜¯å¦ä¸ºç©º
+     */
+    bool isEmptyValue(char *valueP) {
+        return *((uint32_t*)valueP) == 0;
+    }
+
+    /**
+     * åˆ¤æ–­valuePä½ç½®æ˜¯å¦ä¸ºå¡«å……å€¼
+     */
+    bool isPaddingValue(char *valueP) {
+        bool ret = true;
+        char *key, *value;
+        int counter, random;
+        ResolveValue(valueP, key, counter, value, random);
+        ret = strcpy(value, "00000") == 0;
+        delete []key;
+        delete []value;
+        return ret;
+    }
+
 public:
     Segment(const uint32_t chain_num)
         : chain_num(chain_num),
@@ -216,7 +237,7 @@ public:
         total_size = chain_num * chain_capacity * bucket_size + safe_pad;
         data_base = new char[total_size];
         memset(data_base, 0, (chain_num * chain_capacity * bucket_size));
-        temp = new char[safe_pad_simd + (2 * chain_capacity * bucket_size + 23) / 24 * 24 + safe_pad_simd]; // tempÇ°Ìî³ä safepad µÄ4byte   *2£ºÁ½¸öºòÑ¡Í°
+        temp = new char[safe_pad_simd + (2 * chain_capacity * bucket_size + 23) / 24 * 24 + safe_pad_simd]; // tempå‰å¡«å…… safepad çš„4byte   *2ï¼šä¸¤ä¸ªå€™é€‰æ¡¶
 
         uint32_t value_size = BYTE_PER_VALUE * getTagNum();
         value_set = new char[value_size];
@@ -247,8 +268,8 @@ public:
     };
 
     /**
-     * chain_idx Í°id
-     * curtag Ö¸ÎÆ
+     * chain_idx æ¡¶id
+     * curtag æŒ‡çº¹
      */
     bool Insert(uint32_t chain_idx, uint32_t curtag, char *value)
     {
@@ -259,7 +280,7 @@ public:
             bucket_p = data_base + (chain_idx * chain_capacity + insert_cur) * bucket_size;
 
             bool kickout = count > 0;
-            // ÅĞ¶ÏÊÇ·ñÅö×²
+            // åˆ¤æ–­æ˜¯å¦ç¢°æ’
         // if (isCrash(bucket_p, curtag)) {
         //     cout << "Collecion" << endl;
         // }
@@ -268,7 +289,7 @@ public:
                 if ( (0 == ReadTag(bucket_p, tag_idx)))
                 {
                     WriteTag(bucket_p, tag_idx, curtag);
-                    // Ğ´Èëvalue
+                    // å†™å…¥value
                     set_value(chain_idx, insert_cur, tag_idx, value);
                     return true;
                 }
@@ -292,7 +313,7 @@ public:
         {
             char *old_data_base = data_base;
             uint32_t old_chain_len = chain_capacity * bucket_size;
-            // ¼ÆËã³õÊ¼valuesetµÄ³¤¶È
+            // è®¡ç®—åˆå§‹valuesetçš„é•¿åº¦
             uint32_t old_valueset_len = chain_capacity * kTagsPerBucket * BYTE_PER_VALUE;
             chain_capacity++;
             uint32_t new_chain_len = chain_capacity * bucket_size;
@@ -304,7 +325,7 @@ public:
             data_base = new char[total_size];
             memset(data_base, 0, total_size);
 
-            // ÖØĞÂ¸´ÖÆvalue
+            // é‡æ–°å¤åˆ¶value
             uint32_t new_value_len = getTagNum() * BYTE_PER_VALUE;
             char *new_value_set = new char[new_value_len];
             memset(new_value_set, 0, new_value_len);
@@ -334,22 +355,22 @@ public:
                data_base + AltIndex(chain_idx, tag) * chain_capacity * bucket_size,
                chain_capacity * bucket_size);
 
-        char *value_set_p_0 = value_set + chain_idx * chain_capacity * kTagsPerBucket * BYTE_PER_VALUE; // Í°µÄÆğÊ¼µØÖ·
+        char *value_set_p_0 = value_set + chain_idx * chain_capacity * kTagsPerBucket * BYTE_PER_VALUE; // æ¡¶çš„èµ·å§‹åœ°å€
         char *value_set_p_1 = value_set + AltIndex(chain_idx, tag) * chain_capacity * kTagsPerBucket * BYTE_PER_VALUE;
 
         char *p = temp + safe_pad_simd;
         char *end = p + 2 * chain_capacity * bucket_size;
 
         int times = 0;
-        __m256i _true_tag = _mm256_set1_epi16(tag); // ½«tag×°Èë16¸öÆ½ĞĞµÄ16×Ö½ÚÖĞ£¨p±êÁ¿£©
+        __m256i _true_tag = _mm256_set1_epi16(tag); // å°†tagè£…å…¥16ä¸ªå¹³è¡Œçš„16å­—èŠ‚ä¸­ï¼ˆpæ ‡é‡ï¼‰
         uint32_t cmp = 0;
         bool ret = false;
-        while (p + 24 <= end)                       // Ò»´Î²é 24*8/12 = 16¸ö Ò²¾ÍÊÇËÄ¸öÍ°       24*8 = 192
+        while (p + 24 <= end)                       // ä¸€æ¬¡æŸ¥ 24*8/12 = 16ä¸ª ä¹Ÿå°±æ˜¯å››ä¸ªæ¡¶       24*8 = 192
         {
             /**
-             * °Ñ16¸ötag·Ö±ğÌî³äµ½16*16bitÖĞ£¬Ã¿¸ötagµÄ12bitÕ¼¾İµÍ
+             * æŠŠ16ä¸ªtagåˆ†åˆ«å¡«å……åˆ°16*16bitä¸­ï¼Œæ¯ä¸ªtagçš„12bitå æ®ä½
              */
-            __m256i _16_tags = unpack12to16(p); // Ò»¸ötag 12bits£¬8*24/12 = 16¸ötag
+            __m256i _16_tags = unpack12to16(p); // ä¸€ä¸ªtag 12bitsï¼Œ8*24/12 = 16ä¸ªtag
 
             __m256i _ans = _mm256_cmpeq_epi16(_16_tags, _true_tag);
             cmp = _mm256_movemask_epi8(_ans);
@@ -375,7 +396,7 @@ public:
     bool Delete(uint32_t chain_idx, uint32_t tag)
     {
         uint32_t chain_idx2 = AltIndex(chain_idx, tag);
-        // ±éÀúÁ½¸ö¿ÉÄÜÁ´µÄÃ¿¸öÍ°
+        // éå†ä¸¤ä¸ªå¯èƒ½é“¾çš„æ¯ä¸ªæ¡¶
         for (int i = 0; i < chain_capacity; i++)
         {
             char *p = data_base + (chain_idx * chain_capacity + i) * bucket_size;
@@ -396,8 +417,8 @@ public:
     }
 
     /**
-     * °´ÕÕÌõ¼ş£¬É¾³ıtagºÍ¶ÔÓ¦value
-     * is_src true±íÊ¾ĞèÒªÀ©Õ¹µÄsegment£¬false±íÊ¾ĞÂÔöµÄsegment
+     * æŒ‰ç…§æ¡ä»¶ï¼Œåˆ é™¤tagå’Œå¯¹åº”value
+     * is_src trueè¡¨ç¤ºéœ€è¦æ‰©å±•çš„segmentï¼Œfalseè¡¨ç¤ºæ–°å¢çš„segment
      * 
      */
     void EraseEle(bool is_src, uint32_t actv_bit)
@@ -442,7 +463,7 @@ public:
         temp = new char[safe_pad_simd + (2 * chain_capacity * bucket_size + 23) / 24 * 24 + safe_pad_simd];
     }
 
-    // const²ÎÊıÖ»ÄÜÊ¹ÓÃconst·½·¨
+    // constå‚æ•°åªèƒ½ä½¿ç”¨constæ–¹æ³•
     uint32_t getTagNum() const
     {
         return chain_capacity * chain_num * kTagsPerBucket;
@@ -478,10 +499,10 @@ public:
     }
 
     /**
-     * cmp ¶Ô±ÈµÄ½á¹û
-     * times 16Ò»×éµÄ±È½Ï´ÎÊı
-     * chain_idx Í°±àºÅ£¨Look´«ÈëµÄ£¬Î´AltIndexÇ°µÄ£¬¸ÃÍ°¼°ÆäÆ½ĞĞÒç³öÁ´ÅÅÔÚÇ°Ãæ£©
-     * tag Ö¸ÎÆ
+     * cmp å¯¹æ¯”çš„ç»“æœ
+     * times 16ä¸€ç»„çš„æ¯”è¾ƒæ¬¡æ•°
+     * chain_idx æ¡¶ç¼–å·ï¼ˆLookä¼ å…¥çš„ï¼ŒæœªAltIndexå‰çš„ï¼Œè¯¥æ¡¶åŠå…¶å¹³è¡Œæº¢å‡ºé“¾æ’åœ¨å‰é¢ï¼‰
+     * tag æŒ‡çº¹
      */
     void LookupValue(uint32_t cmp, int times, size_t chain_idx, uint32_t tag, vector<char*> &values) const{
         vector<char*> ret;
@@ -491,7 +512,7 @@ public:
             int tag_index = tag_indexs.at(i);
             tag_index += times * 16;
 
-            // ¼ÆËãÒ»¸ösegmentÖĞ
+            // è®¡ç®—ä¸€ä¸ªsegmentä¸­
             int a_chains_tag_num = chain_capacity * kTagsPerBucket;
             int bucket_id, chain_id, tag_id;
             if (tag_index < a_chains_tag_num)
@@ -503,7 +524,7 @@ public:
                 tag_index -= a_chains_tag_num;
                 bucket_id = AltIndex(chain_idx, tag);
             }
-            chain_id = tag_index / kTagsPerBucket; // Ò»¸öÍ°ÖĞ4¸ötag
+            chain_id = tag_index / kTagsPerBucket; // ä¸€ä¸ªæ¡¶ä¸­4ä¸ªtag
             tag_id = tag_index % kTagsPerBucket;
             char *value_p = get_value(bucket_id, chain_id, tag_id);
             value = new char[BYTE_PER_VALUE];
@@ -514,5 +535,30 @@ public:
             // }
         }
         //return value; 
+    }
+
+    /**
+     * åŠ å¯†value
+     */
+    void Encrypt(char *password) {
+        char *enc_value = new char[BYTE_PER_VALUE];
+        int encLen = 0;
+        char *valueP;
+        for (int p=0; p<getTagNum(); p++) {
+            memset(enc_value, 0, BYTE_PER_VALUE);
+            valueP = value_set + BYTE_PER_VALUE * p;
+            if(isEmptyValue(valueP)) {
+                continue;
+            }
+            int len = strlen(valueP);
+            if( -1 == aes_encrypt_string(password, valueP, len, enc_value, &encLen) ) {
+                cout << "åŠ å¯†å¤±è´¥!" << endl;
+            }      
+            if (encLen != BYTE_PER_VALUE) {
+                cout << "å¯†æ–‡é•¿åº¦é”™è¯¯!" << endl; 
+            }
+            memcpy(valueP, enc_value, BYTE_PER_VALUE);
+        }
+        delete []enc_value;
     }
 };
