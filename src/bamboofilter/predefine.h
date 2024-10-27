@@ -1,8 +1,8 @@
-#define BUCKETS_PER_SEG 10
-#define MAX_CUCKOO_KICK 8
+#define BUCKETS_PER_SEG 10      // 5             越小碰撞概率越高
+#define MAX_CUCKOO_KICK 8       // 8    12: 1393 越大碰撞概率越高
 
-#define BITS_PER_TAG 12
-#define FINGUREPRINT_MASK (0xFFFULL)
+#define BITS_PER_TAG 12     // 指纹的长度？  12
+#define FINGUREPRINT_MASK (0xFFFULL)         // 0xFFFULL
 
 #define BYTE_PER_VALUE 32    // 32个char
 #define BITS_PER_VALUE 8 * BYTE_PER_VALUE

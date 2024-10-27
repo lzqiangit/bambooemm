@@ -39,9 +39,6 @@ void extend() {
     }
     
     for (int i=0; i<data.size(); i++) {
-        if (i == 1980) {
-            cout << endl;
-        }
         bemm.Insert(data[i]);
     }
 

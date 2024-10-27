@@ -215,13 +215,17 @@ private:
 
     /**
      * 判断valueP位置是否为填充值
+     * 注意：这个逻辑就不允许value为0了，否则会被直接填充
      */
     bool isPaddingValue(char *valueP) {
+        if (isEmptyValue(valueP)) {
+            return false;
+        }
         bool ret = true;
         char *key, *value;
         int counter, random;
         ResolveValue(valueP, key, counter, value, random);
-        ret = strcpy(value, "00000") == 0;
+        ret = atoi(value) == 0;
         delete []key;
         delete []value;
         return ret;
@@ -294,6 +298,25 @@ public:
                     return true;
                 }
             }
+            // for (size_t tag_idx = 0; tag_idx < kTagsPerBucket; tag_idx++)
+            // {
+            //     // 插入填充值
+            //     if (isPaddingValue(value)) {
+            //         if ( 0 == ReadTag(bucket_p, tag_idx)) {
+            //             WriteTag(bucket_p, tag_idx, curtag);
+            //             // 写入value
+            //             set_value(chain_idx, insert_cur, tag_idx, value);
+            //         }
+            //         return true;
+            //     } else {
+            //         if ( (0 == ReadTag(bucket_p, tag_idx)) || isPaddingValue(get_value(chain_idx, insert_cur, tag_idx))) {
+            //             WriteTag(bucket_p, tag_idx, curtag);
+            //             // 写入value
+            //             set_value(chain_idx, insert_cur, tag_idx, value);
+            //             return true;
+            //         }
+            //     }
+            // }
 
             if (kickout)
             {
@@ -427,9 +450,6 @@ public:
         int bucket_id = 0;
         for (int i = 0; i<chain_num; i++) {
             for (int j=0; j<chain_capacity; j++) {
-                if (i==156) {
-                    cout << endl;
-                }
                 p = data_base + (i * chain_capacity + j) * bucket_size;
                 uint64_t delFlag = doErase(p, is_src, actv_bit);
 

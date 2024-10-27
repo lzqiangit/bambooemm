@@ -51,16 +51,28 @@ void Client::SetupEMM(vector<KV*> kvList, int n, int l) {
     bemm->Encrypt(LoadKey());
 }
 
+/**
+ * 考虑到先插入后填充,或许可以另开一个填充函数
+ */
 void Client::MappingStep(vector<KV*> kvList, int l) {
     int counter = 0;
+    int passCounter = 0;
     char *key;
     for (KV *kv : kvList) {
         counter = kv->counter;    
         key = kv->key;
         for (int i=counter; i < l; i++) {
-            this->bemm->Insert(new KV(key, "00000", ++counter));
+            KV *kv = new KV(key, "00000", ++counter);
+            if (!(this->bemm->isExistKeyCounter(kv->key, kv->counter))) {
+                this->bemm->Insert(kv);
+            } else {
+                cout << "OKKKKKKKKKKKK! : " << kv->key << "||" << kv->counter << endl;
+                ++passCounter;
+            }
+            //delete kv;            // ? 泄露?????
         }
     } 
+    cout << "PASS:" << passCounter << endl;
 }   
 
 BambooEMM* Client::getBEMM() {

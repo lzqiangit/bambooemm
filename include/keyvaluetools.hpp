@@ -157,19 +157,20 @@ int aes_decrypt_string(char *_pPassword, char *_pInput, int _InLen, char *_pOutB
     /* Update cipher text */
     if (!EVP_DecryptUpdate(pDe_ctx, (unsigned char *)_pOutBuf, &outlen, (unsigned char *)_pInput, _InLen))
     { // 处理数据
-        cout << "Error,DEC_UPDATE:" << endl;
+        cout << "Error,DEC_UPDATE:" << _pOutBuf << endl;
         goto clean;
     }
 
     /* updates the remaining bytes */
     if (EVP_DecryptFinal_ex(pDe_ctx, (unsigned char *)(_pOutBuf + outlen), &flen) != 1)
     { // 完成解密操作，处理剩余字节
-        cout << "Error,DEC_FINAL!" << endl;
+        cout << "Error,DEC_FINAL!" << _pOutBuf << "|" << flen << endl;
         goto clean;
     }
 
     *_pOutLen = outlen + flen;
 
+    ret = 1;
 clean:
     // 清理内存
     if (pDe_ctx)
@@ -262,7 +263,7 @@ char *RandomNumStr(int len, int pre)
     char *nextStr = new char[len + 1];
     memset(nextStr, 0, len + 1);
     sprintf(nextStr, "%d", next);
-    return nextStr;
+    return "12";
 }
 
 #endif

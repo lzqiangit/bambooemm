@@ -8,7 +8,7 @@ set(CMAKE_CXX_FLAGS
 set(CMAKE_EXE_LINKER_FLAGS "-lpthread ${CMAKE_EXE_LINKER_FLAGS}")
 set(CMAKE_CXX_FLAGS "-fpermissive ${CMAKE_CXX_FLAGS}")
 set(CMAKE_BUILD_TYPE "Debug")
-# set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/lib)      # ÉèÖÃ¿âµÄÉú³ÉµØÖ·
+# set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/lib)      # ï¿½ï¿½ï¿½Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½Éµï¿½Ö·
 
 set(HEADPATH ${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/src/bamboofilter ${PROJECT_SOURCE_DIR}/src/bambooemm)
 

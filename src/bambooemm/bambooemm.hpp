@@ -93,6 +93,16 @@ public:
         return ret;
     }
 
+    bool isExistKeyCounter(char *key, int counter) {
+        vector<char *> ret;
+        uint32_t seg_index, bucket_index, tag;
+        uint32_t hashKey = BOBHash::run(key, strlen(key), 3);
+
+        char *hashKey_counter = SpliceKey(hashKey, counter);
+        bf->Lookup(hashKey_counter, ret);
+        return ret.size() > 0;
+    }
+
     BambooFilter *getEMM()
     {
         return bf;
@@ -104,6 +114,7 @@ public:
         }
         // 加密
         bf->Encrypt(password);
+        isEnc = true;
     }
 
 private:
