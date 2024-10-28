@@ -13,17 +13,17 @@ using namespace std;
 
 vector<KV *> LoadKVList(int &n, int &l) {
     MYSQL *con = NULL;
-    con = mysql_init(con);//³õÊ¼»¯
+    con = mysql_init(con);//ï¿½ï¿½Ê¼ï¿½ï¿½
     if (con == NULL)
     {
         cout << "Init Connect ERROR" << endl;;
     }
-    string url = "127.0.0.1";    //Ö÷»úµØÖ·
-    unsigned int Port = 3306;   //Êý¾Ý¿â¶Ë¿ÚºÅ
-    string User = "lzq";   //µÇÂ½Êý¾Ý¿âÓÃ»§Ãû
-    string PassWord = "0000";  //µÇÂ½Êý¾Ý¿âÃÜÂë
-    string DBName = "kvlist"; //Ê¹ÓÃÊý¾Ý¿âÃû
-    //Á´½ÓÊý¾Ý¿â
+    string url = "127.0.0.1";    //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö·
+    unsigned int Port = 3306;   //ï¿½ï¿½ï¿½Ý¿ï¿½Ë¿Úºï¿½
+    string User = "lzq";   //ï¿½ï¿½Â½ï¿½ï¿½ï¿½Ý¿ï¿½ï¿½Ã»ï¿½ï¿½ï¿½
+    string PassWord = "0000";  //ï¿½ï¿½Â½ï¿½ï¿½ï¿½Ý¿ï¿½ï¿½ï¿½ï¿½ï¿½
+    string DBName = "kvlist"; //Ê¹ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½ï¿½ï¿½
+    //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½
     con = mysql_real_connect(con, url.c_str(), User.c_str(), PassWord.c_str(), DBName.c_str(), Port, NULL, 0);
 
     if (con == NULL)
@@ -31,19 +31,19 @@ vector<KV *> LoadKVList(int &n, int &l) {
         cout << "Connect Database Error" << endl;
     }
 
-    //Ö´ÐÐsqlÓï¾ä£¬Èç¹û²éÑ¯³É¹¦£¬mysql_query()º¯Êý»á·µ»Ø0£»·ñÔò£¬·µ»Ø·ÇÁãÖµ±íÊ¾·¢Éú´íÎó¡£
+    //Ö´ï¿½ï¿½sqlï¿½ï¿½ä£¬ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¯ï¿½É¹ï¿½ï¿½ï¿½mysql_query()ï¿½ï¿½ï¿½ï¿½ï¿½á·µï¿½ï¿½0ï¿½ï¿½ï¿½ï¿½ï¿½ò£¬·ï¿½ï¿½Ø·ï¿½ï¿½ï¿½Öµï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     mysql_query(con, "select * from random");
 
     MYSQL_RES *res;
     MYSQL_ROW row;
-    //»ñµÃÖ´ÐÐ½á¹û
+    //ï¿½ï¿½ï¿½Ö´ï¿½Ð½ï¿½ï¿½
     res = mysql_use_result(con);
     const char * csname = "utf8";
     mysql_set_character_set(con, csname);
 
-    //»ñÈ¡×Ö¶Î¸öÊý£¬¼´²éÑ¯»ñµÃµÄ½á¹ûÀïÓÐ¼¸ÁÐÊý¾Ý
+    //ï¿½ï¿½È¡ï¿½Ö¶Î¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¯ï¿½ï¿½ÃµÄ½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     int nums = 0;  
-    nums = mysql_num_fields(res);  //ÊôÓÚ±í½á¹¹µÄ»ñÈ¡
+    nums = mysql_num_fields(res);  //ï¿½ï¿½ï¿½Ú±ï¿½ï¿½á¹¹ï¿½Ä»ï¿½È¡
 
     MYSQL_FIELD * fields;
     vector<KV *> kvList;
@@ -51,7 +51,7 @@ vector<KV *> LoadKVList(int &n, int &l) {
     l = 0;
     int tempL = 0;
     char *bkey = nullptr;
-    while( (row = mysql_fetch_row(res)) != nullptr)  //mysql_fetch_row()º¯Êý´ÓÖ¸¶¨µÄ½á¹û¼¯ÖÐ»ñÈ¡Ò»ÐÐÊý¾Ý·µ»Ø¸ørow£¬ÊÇÊý×éµÄÐÎÊ½£¬¼´rowÄÚ²¿ÊÇ×Ö·û´®Êý×éÖ¸Õë£¨¶þ¼¶Ö¸Õë£©
+    while( (row = mysql_fetch_row(res)) != nullptr)  //mysql_fetch_row()ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½Ä½ï¿½ï¿½ï¿½ï¿½ï¿½Ð»ï¿½È¡Ò»ï¿½ï¿½ï¿½ï¿½ï¿½Ý·ï¿½ï¿½Ø¸ï¿½rowï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½ï¿½ï¿½rowï¿½Ú²ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ë£¨ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ë£©
     {
         ++n;
         char *key = new char[(strlen(row[0]) + 1)];
@@ -83,17 +83,17 @@ vector<KV *> LoadKVList(int &n, int &l) {
 
 vector<int> LoadVolumn() {
     MYSQL *con = NULL;
-    con = mysql_init(con);//³õÊ¼»¯
+    con = mysql_init(con);//ï¿½ï¿½Ê¼ï¿½ï¿½
     if (con == NULL)
     {
         cout << "Init Connect ERROR" << endl;;
     }
-    string url = "127.0.0.1";    //Ö÷»úµØÖ·
-    unsigned int Port = 3306;   //Êý¾Ý¿â¶Ë¿ÚºÅ
-    string User = "lzq";   //µÇÂ½Êý¾Ý¿âÓÃ»§Ãû
-    string PassWord = "0000";  //µÇÂ½Êý¾Ý¿âÃÜÂë
-    string DBName = "kvlist"; //Ê¹ÓÃÊý¾Ý¿âÃû
-    //Á´½ÓÊý¾Ý¿â
+    string url = "127.0.0.1";    //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö·
+    unsigned int Port = 3306;   //ï¿½ï¿½ï¿½Ý¿ï¿½Ë¿Úºï¿½
+    string User = "lzq";   //ï¿½ï¿½Â½ï¿½ï¿½ï¿½Ý¿ï¿½ï¿½Ã»ï¿½ï¿½ï¿½
+    string PassWord = "0000";  //ï¿½ï¿½Â½ï¿½ï¿½ï¿½Ý¿ï¿½ï¿½ï¿½ï¿½ï¿½
+    string DBName = "kvlist"; //Ê¹ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½ï¿½ï¿½
+    //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½
     con = mysql_real_connect(con, url.c_str(), User.c_str(), PassWord.c_str(), DBName.c_str(), Port, NULL, 0);
 
     if (con == NULL)
@@ -101,26 +101,26 @@ vector<int> LoadVolumn() {
         cout << "Connect Database Error" << endl;
     }
 
-    //Ö´ÐÐsqlÓï¾ä£¬Èç¹û²éÑ¯³É¹¦£¬mysql_query()º¯Êý»á·µ»Ø0£»·ñÔò£¬·µ»Ø·ÇÁãÖµ±íÊ¾·¢Éú´íÎó¡£
+    //Ö´ï¿½ï¿½sqlï¿½ï¿½ä£¬ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¯ï¿½É¹ï¿½ï¿½ï¿½mysql_query()ï¿½ï¿½ï¿½ï¿½ï¿½á·µï¿½ï¿½0ï¿½ï¿½ï¿½ï¿½ï¿½ò£¬·ï¿½ï¿½Ø·ï¿½ï¿½ï¿½Öµï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     mysql_query(con, "select count(*) from random group by `key`");
 
     MYSQL_RES *res;
     MYSQL_ROW row;
-    //»ñµÃÖ´ÐÐ½á¹û
+    //ï¿½ï¿½ï¿½Ö´ï¿½Ð½ï¿½ï¿½
     res = mysql_use_result(con);
     const char * csname = "utf8";
     mysql_set_character_set(con, csname);
 
-    //»ñÈ¡×Ö¶Î¸öÊý£¬¼´²éÑ¯»ñµÃµÄ½á¹ûÀïÓÐ¼¸ÁÐÊý¾Ý
+    //ï¿½ï¿½È¡ï¿½Ö¶Î¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¯ï¿½ï¿½ÃµÄ½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     int nums = 0;  
-    nums = mysql_num_fields(res);  //ÊôÓÚ±í½á¹¹µÄ»ñÈ¡
+    nums = mysql_num_fields(res);  //ï¿½ï¿½ï¿½Ú±ï¿½ï¿½á¹¹ï¿½Ä»ï¿½È¡
 
     MYSQL_FIELD * fields;
     vector<int> volumeList;
 
     int tempL = 0;
     char *bkey = nullptr;
-    while( (row = mysql_fetch_row(res)) != nullptr)  //mysql_fetch_row()º¯Êý´ÓÖ¸¶¨µÄ½á¹û¼¯ÖÐ»ñÈ¡Ò»ÐÐÊý¾Ý·µ»Ø¸ørow£¬ÊÇÊý×éµÄÐÎÊ½£¬¼´rowÄÚ²¿ÊÇ×Ö·û´®Êý×éÖ¸Õë£¨¶þ¼¶Ö¸Õë£©
+    while( (row = mysql_fetch_row(res)) != nullptr)  //mysql_fetch_row()ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½Ä½ï¿½ï¿½ï¿½ï¿½ï¿½Ð»ï¿½È¡Ò»ï¿½ï¿½ï¿½ï¿½ï¿½Ý·ï¿½ï¿½Ø¸ï¿½rowï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½ï¿½ï¿½rowï¿½Ú²ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ë£¨ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ë£©
     {
         char *volum = new char[(strlen(row[0]) + 1)];
     
@@ -195,14 +195,15 @@ void printBinary(char* data, size_t length) {
         for (int j = 7; j >= 0; --j) {
             std::cout << ((data[i] >> j) & 1);
         }
-        std::cout << " "; // Ã¿¸ö×Ö½ÚÖ®¼ä¼ÓÒ»¸ö¿Õ¸ñ
+        std::cout << " "; //
     }
     std::cout << endl;
+    
 }
 
 uint32_t get_value_id(const char* value) {  
     string input = value;
-    // Ê¹ÓÃ×Ö·û´®Á÷ºÍ×Ö·û´®²Ù×÷ÕÒµ½×îºóÒ»¸öÏÂ»®Ïß²¢ÌáÈ¡ id ²¿·Ö  
+    // 
     std::size_t pos = input.rfind('_');  
     if (pos == std::string::npos || pos == input.size() - 1) {  
         throw std::invalid_argument("Invalid input string format");  
@@ -210,7 +211,7 @@ uint32_t get_value_id(const char* value) {
       
     std::string idStr = input.substr(pos + 1);  
       
-    // Ê¹ÓÃ×Ö·û´®Á÷½« id ²¿·Ö×ª»»Îª unsigned int  
+    // Ê¹ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ id ï¿½ï¿½ï¿½ï¿½×ªï¿½ï¿½Îª unsigned int  
     uint32_t id;  
     std::istringstream iss(idStr);  
     if (!(iss >> id)) {  

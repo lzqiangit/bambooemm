@@ -146,6 +146,9 @@ private:
         return delFlag;
     }
 
+    /**
+     * 擦除value
+     */
     bool eraseValue(uint32_t bucket_id, uint32_t chain_id, uint64_t delFlag, bool is_src) {
         uint64_t mask = 0x000000000001ULL;
         for (int i=0; i<kTagsPerBucket; i++) {
@@ -159,7 +162,7 @@ private:
                     memset(tag_p, 0, BYTE_PER_VALUE);
                 }
             } 
-            mask = mask << 12;
+            mask = mask << BITS_PER_TAG;
         } 
         return true;         
     }

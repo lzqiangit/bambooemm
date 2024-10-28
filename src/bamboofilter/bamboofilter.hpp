@@ -150,7 +150,7 @@ bool BambooFilter::Delete(const char *key)
 void BambooFilter::Extend()
 {
 
-    cout << "EXTEND!!" << endl;
+    //cout << "EXTEND!!" << endl;
     Segment *src = hash_table_[next_split_idx_];
     Segment *dst = new Segment(*src);
     hash_table_.push_back(dst);

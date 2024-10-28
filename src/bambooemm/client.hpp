@@ -3,13 +3,14 @@
 
 #include "bambooemm.hpp"
 #include "utils.hpp"
+#include "predefine.h"
 
 class Client
 {
 private:
     /* data */
     BambooEMM *bemm;
-
+    int n;
 public:
     Client(/* args */);
     ~Client();
@@ -31,9 +32,10 @@ Client::~Client()
  * 传入初始数据的EMM，以及kv总数和最大最大容量l
  */
 void Client::SetupEMM(vector<KV*> kvList, int n, int l) {
+    this->n = n;
     vector<KV*> maxCounterKVList;           // 存储每个key中counter最大的元素
     this->bemm = new BambooEMM();
-    this->bemm->Setup(2, n/0.75, l, LoadKey());
+    this->bemm->Setup(2, MIN_STAR_CAP, l, LoadKey());
     char *tempKey = kvList.at(0)->key;
     for (int i=0; i<kvList.size(); i++) {
         this->bemm->Insert(kvList.at(i));             // counter必须从0开始而且连续 yes
@@ -66,13 +68,13 @@ void Client::MappingStep(vector<KV*> kvList, int l) {
             if (!(this->bemm->isExistKeyCounter(kv->key, kv->counter))) {
                 this->bemm->Insert(kv);
             } else {
-                cout << "OKKKKKKKKKKKK! : " << kv->key << "||" << kv->counter << endl;
+                //cout << "OKKKKKKKKKKKK! : " << kv->key << "||" << kv->counter << endl;
                 ++passCounter;
             }
             //delete kv;            // ? 泄露?????
         }
     } 
-    cout << "PASS:" << passCounter << endl;
+    cout << "共用填充:" << passCounter << "|" << 228601 << "(" << (float)passCounter/228601.f*100.f << "%)" << endl;
 }   
 
 BambooEMM* Client::getBEMM() {

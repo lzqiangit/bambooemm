@@ -1,14 +1,17 @@
-#define BUCKETS_PER_SEG 10      // 5             越小碰撞概率越高
+#define BUCKETS_PER_SEG 7      // 10             越小碰撞概率越高
 #define MAX_CUCKOO_KICK 8       // 8    12: 1393 越大碰撞概率越高
 
-#define BITS_PER_TAG 12     // 指纹的长度？  12
-#define FINGUREPRINT_MASK (0xFFFULL)         // 0xFFFULL
+#define MIN_STAR_CAP 1024          // 4 * 2 ^ (BUCKETS_PER_SEG - 1)
+
+// 指纹长度不能修改
+#define BITS_PER_TAG 12    
+#define FINGUREPRINT_MASK (0xFFFULL)       
 
 #define BYTE_PER_VALUE 32    // 32个char
 #define BITS_PER_VALUE 8 * BYTE_PER_VALUE
 #define RANDOM_NUM_LEN 2    // 拼接后的value中拼接的随机数的长度
 
-#define NUM_SEG_BITS (num_table_bits_ - BUCKETS_PER_SEG)
+#define NUM_SEG_BITS (num_table_bits_ - BUCKETS_PER_SEG)    // 
 #define ACTV_TAG_BIT (num_table_bits_ - INIT_TABLE_BITS)
 
 #define isn(x, bit) (x & (~(((x & (1 << bit)) >> bit) - 1)))

@@ -30,8 +30,8 @@ public:
     bool Setup(int split_condition_param, int n, int l, char *password)
     {
         this->password = password;
-        uint64_t volumn = n > 8192 ? n : 8192;
-        bf = new BambooFilter(upperpower2(volumn), split_condition_param);
+        //uint64_t volumn = n > 8192 ? n : 8192;
+        bf = new BambooFilter(upperpower2(n), split_condition_param);
         elem_num = n;
         max_volume = l;
         return true;

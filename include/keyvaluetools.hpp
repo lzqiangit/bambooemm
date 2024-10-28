@@ -6,6 +6,8 @@
 #include <iostream>
 #include <string>
 #include <random>
+#include "keyvaluetools.hpp"
+#define RAND_LEN 2
 
 int aes_encrypt_string(char *_pPassword, char *_pInput, int _InLen, char *_pOutBuf, int *_pOutLen);
 int aes_decrypt_string(char *_pPassword, char *_pInput, int _InLen, char *_pOutBuf, int *_pOutLen);
@@ -15,7 +17,7 @@ char *SpliceValue(KV *kv, int retRandom = 0);
 void ResolveValue(char *spliceValue, char *&key, int &counter, char *&value, int &random);
 char *RandomNumStr(int len, int pre);
 
-#include "keyvaluetools.hpp"
+
 /*
 *****************************************************************************************
 *   函 数 名: aes_encrypt_string
@@ -211,7 +213,7 @@ char *SpliceValue(KV *kv, int retRandom = 0)
     string ret = keyStr + '|';
     if (len <= 13)
     {
-        padLen = 17 - len;
+        padLen = 17 - len - RAND_LEN;
         char *padCStr = new char[padLen + 1];
         memset(padCStr, '0', padLen);
         memset(padCStr + padLen, 0, 1);
