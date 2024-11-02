@@ -7,10 +7,12 @@ public:
     char *key;
     char *value;
     int counter;
+    int random;
     KV(char *key, char *value, int counter) : key(key),
                                               value(value),
                                               counter(counter)
     {
+        random = 00;
     }
     ~KV()
     {

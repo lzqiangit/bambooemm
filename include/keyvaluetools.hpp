@@ -265,7 +265,7 @@ char *RandomNumStr(int len, int pre)
     char *nextStr = new char[len + 1];
     memset(nextStr, 0, len + 1);
     sprintf(nextStr, "%d", next);
-    return "12";
+    return nextStr;
 }
 
 #endif

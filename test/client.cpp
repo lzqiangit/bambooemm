@@ -38,38 +38,117 @@ void QueryAfterMapping() {
         vector<char*> values = bemm->Query((char*)key.c_str());
         moreTransCast += values.size() - l;
 
-        //cout << key << " : ";
         for (int j=0; j<values.size(); j++) {
             char *value = values.at(j);
             memset(dec, 0, 32);
             if(aes_decrypt_string(LoadKey(), value, BYTE_PER_VALUE, dec, &decLen) == -1) {
                 cout << key << "|" << j << endl;
             }
-            /*
-            KV *kv = new KV((char*)key.c_str(), (char*)to_string(counter++).c_str(), i);
-            char *aim = SpliceValue(kvList.at(counter++));
-            if (strcmp(aim, dec) != 0) {
-                cout << key << ":" << dec << "\t aim: " << aim << endl;
-                --counter;
-            }
-            ResolveValue(dec, tempKey, tempCounter, tempValue, tempRandom);
-            if (j >= volumnList.at(i) && atoi(tempValue) != 0) {
-            */
-                //cout << dec << " # ";
-            /*
-                counter++;
-            }
-            */
         }
-        //cout << endl << endl;
     }
     cout << "增加通信开销:" << moreTransCast << "|" << n << "(" << (float)moreTransCast / (float)(16384 * l) * 100.f << "%)" <<endl;
-    //cout << counter << endl;
-    // while (true);
+}
+
+void TestQueryRet() {
+    int n, l;
+    vector<KV*> kvList = LoadKVList(n, l);
+    vector<int> volumnList = LoadVolumn();
+    Client *client = new Client();
+    cout << "初始化..." << endl;
+    client->SetupEMM(kvList, n, l);
+
+
+    cout << "初始化结束,准备查询!" << endl;
+    BambooEMM *bemm = client->getBEMM();
+
+    char *password = LoadKey();
+    char *dec = new char[32];
+    int decLen;
+    int counter = 0;
+    char *tempKey, *tempValue;
+    int tempCounter, tempRandom;
+
+    int moreTransCast = 0;
+    for (int i=0; i<16384; i++) {       // 16384
+        string key = "key_" + to_string(i);
+        vector<char*> values = bemm->Query((char*)key.c_str());
+        moreTransCast += values.size() - l;
+
+        cout << key << ": ";
+        for (int j=0; j<values.size(); j++) {
+            char *value = values.at(j);
+            memset(dec, 0, 32);
+            if(aes_decrypt_string(LoadKey(), value, BYTE_PER_VALUE, dec, &decLen) == -1) {
+                cout << key << "|" << j << endl;
+            }
+            cout << dec << " @ ";
+        }
+        cout << endl << endl;
+    }
+    cout << "增加通信开销:" << moreTransCast << "|" << n << "(" << (float)moreTransCast / (float)(16384 * l) * 100.f << "%)" <<endl;
+}
+
+void ReInsert() {
+
+    int n, l;
+    vector<KV*> kvList = LoadKVList(n, l);
+    vector<int> volumnList = LoadVolumn();
+    Client *client = new Client();
+    cout << "初始化..." << endl;
+    client->SetupEMM(kvList, n, l);
+
+
+    cout << "初始化结束,准备查询!" << endl;
+    BambooEMM *bemm = client->getBEMM();
+
+    char *password = LoadKey();
+    char *dec = new char[32];
+    int decLen;
+    int counter = 0;
+    char *tempKey, *tempValue;
+    int tempCounter, tempRandom;
+    
+    string key = "key_" + to_string(494);
+    //cout << "****************************************************" << endl;
+    vector<char*> values = bemm->Query((char*)key.c_str());
+    //cout << "****************************************************" << endl;
+    vector<KV*> rKVList;
+    char *tKey, *tval;
+    int tcounter, trandom;
+    cout << key << ": ";
+    for (int j=0; j<values.size(); j++) {
+        char *value = values.at(j);
+        memset(dec, 0, 32);
+        if(aes_decrypt_string(LoadKey(), value, BYTE_PER_VALUE, dec, &decLen) == -1) {
+            cout << key << "|" << j << endl;
+        }
+        cout << dec << " @ ";
+
+        ResolveValue(dec, tKey, tcounter, tval, trandom);
+
+        KV *tkv = new KV(tKey, tval, tcounter);
+        tkv->random = trandom;
+        rKVList.push_back(tkv);
+    }
+    cout << endl << endl;
+
+    client->ReEncrypt(rKVList);
+
+    values = bemm->Query((char*)key.c_str());
+    cout << key << ": ";
+    for (int j=0; j<values.size(); j++) {
+        char *value = values.at(j);
+        memset(dec, 0, 32);
+        if(aes_decrypt_string(LoadKey(), value, BYTE_PER_VALUE, dec, &decLen) == -1) {
+            cout << key << "|" << j << endl;
+        }
+        cout << dec << " @ ";
+    }
+    cout << endl << endl;
 }
 
 int main(int argc, char const *argv[])
 {
-    QueryAfterMapping();   
+    ReInsert();   
     return 0;
 }

@@ -44,6 +44,7 @@ void extend() {
 
 // ��ѯ
     uint32_t counter = 0;
+    
     for (int i=0; i<key.size(); i++) {
         vector<char*> ret = bemm.Query(key.at(i));
         cout << i << "\t" ;

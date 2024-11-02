@@ -9,6 +9,7 @@
 #include "bamboofilter/predefine.h"
 #include "bamboofilter/segment.hpp"
 #include "common/BOBHash.h"
+#include "filterposition.hpp"
 
 using std::vector;
 
@@ -69,12 +70,17 @@ public:
     ~BambooFilter();
 
     bool Insert(const char *key, char *value);
-    bool Lookup(const char *key, vector<char*> &values) const;
+    bool Lookup(const char *key, vector<char *> &values) const;
     bool Delete(const char *key);
 
     void Extend();
     void Compress();
     void Encrypt(char *password);
+    /**
+     * 更新value值
+     * n : 该key第n个元素
+     */
+    void UpdateValue(FilterPosition bf, vector<char *> vals);
 };
 
 BambooFilter::BambooFilter(uint32_t capacity, uint32_t split_condition_param)
@@ -118,13 +124,17 @@ bool BambooFilter::Insert(const char *key, char *value)
     return true;
 }
 
-bool BambooFilter::Lookup(const char *key, vector<char*> &values) const
+bool BambooFilter::Lookup(const char *key, vector<char *> &values) const
 {
+    int starLen = values.size();
     uint32_t seg_index, bucket_index, tag;
 
     GenerateIndexTagHash(key, seg_index, bucket_index, tag);
-    
-    return hash_table_[seg_index]->Lookup(bucket_index, tag, values);
+    // ****************************************************************
+    //cout << key << " # " << seg_index << " # "<< bucket_index << " # "<< tag << " # ";
+    bool ret = hash_table_[seg_index]->Lookup(bucket_index, tag, values);
+    //cout << values.size() - starLen << endl;
+    return ret;
 }
 
 bool BambooFilter::Delete(const char *key)
@@ -150,7 +160,7 @@ bool BambooFilter::Delete(const char *key)
 void BambooFilter::Extend()
 {
 
-    //cout << "EXTEND!!" << endl;
+    // cout << "EXTEND!!" << endl;
     Segment *src = hash_table_[next_split_idx_];
     Segment *dst = new Segment(*src);
     hash_table_.push_back(dst);
@@ -184,8 +194,18 @@ void BambooFilter::Compress()
     hash_table_.pop_back();
 }
 
-void BambooFilter::Encrypt(char *password) {
-    for (Segment *segment : hash_table_) {
+void BambooFilter::Encrypt(char *password)
+{
+    for (Segment *segment : hash_table_)
+    {
         segment->Encrypt(password);
     }
+}
+
+/**
+ * 
+ */
+void BambooFilter::UpdateValue(FilterPosition bf, vector<char *> vals)
+{
+    hash_table_[bf.seg]->UpdateValue(bf.bucket, bf.tag, vals);
 }
