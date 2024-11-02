@@ -114,7 +114,7 @@ void Client::ReEncrypt(vector<KV *> kvList, char *keyA = nullptr)
     BambooFilter *bf = bemm->getEMM();
     for (KV *kv : kvList)
     {
-
+        bool flag = true;  // 是否未被记录
         char *key = SpliceKey(BOBHash::run(kv->key, strlen(kv->key), 3), kv->counter);
         char *kvcr = SpliceValue(kv, kv->random);
         char *encKvcr = EncValue(kvcr);
@@ -127,12 +127,16 @@ void Client::ReEncrypt(vector<KV *> kvList, char *keyA = nullptr)
         for (auto e : updateMap) {
             if (tempFP == e.first) {
                 updateMap[e.first].push_back(encKvcr);
-                continue;
+                flag = false;
+                break;;
             }
         }
-        vector<char*> tv;
-        tv.push_back(encKvcr);
-        updateMap.insert(pair<FilterPosition, vector<char *>>(tempFP, tv));           
+        if (flag) {
+            vector<char*> tv;
+            tv.push_back(encKvcr);
+            updateMap.insert(pair<FilterPosition, vector<char *>>(tempFP, tv));        
+        }
+           
     }
 
 

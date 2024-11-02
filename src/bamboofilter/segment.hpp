@@ -598,11 +598,11 @@ public:
     void UpdateValue(uint32_t chain_idx, uint16_t tag, vector<char*> &values) {
         vector<char*> valuesP;
         LookupP(chain_idx, tag, valuesP);
+        int len = min(valuesP.size(), values.size());
         if (valuesP.size() != values.size()) {
-            cout << "更新的value数量和emm中的不匹配  " << chain_idx << endl;
-            exit(0);
+            cout << endl << "更新的value数量和emm中的不匹配  " << chain_idx << endl << endl;
         }
-        for (int i=0; i < values.size(); i++) {
+        for (int i=0; i < len; i++) {
             memcpy(valuesP.at(i), values.at(i), BYTE_PER_VALUE);
         }
     }
