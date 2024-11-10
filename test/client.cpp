@@ -237,8 +237,21 @@ void TestReInsertAll()
     cout << "NOPROBLEM";
 }
 
+void update() {
+    int n, l;
+    vector<KV *> kvList = LoadKVList(n, l);
+    vector<int> volumnList = LoadVolumn();
+    Client *client = new Client();
+    cout << "初始化..." << endl;
+    client->SetupEMM(kvList, n, l);
+
+    string key = "key_0";
+    string val = "null";
+    client->Update((char*)key.c_str(), 0, OP_DELETE, (char*)val.c_str());
+}
+
 int main(int argc, char const *argv[])
 {
-    ReInsert();
+    update();
     return 0;
 }

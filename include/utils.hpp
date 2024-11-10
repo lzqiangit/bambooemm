@@ -3,21 +3,23 @@
 
 #include <vector>
 #include "KV.hpp"
-#include <openssl/aes.h>
-#include <openssl/rand.h>
 #include <iostream>
 #include <cstring>
 #include <immintrin.h>
 using namespace std;
 
-# define AES_BLOCK_SIZE 16  //  
+
+
+#define AES_BLOCK_SIZE 16  //  
 #define AES_KEY_LENGTH 16
 #define AES_KEY_BITS_LENGTH AES_KEY_LENGTH * 8
 
+typedef unsigned int uint32_t;
+typedef unsigned long int uint64_t;
 
 vector<KV *> LoadKVList(int &n, int &l);
 /**
- * �������AES��Կ
+ * 
  */
 int LenOfInt(int num);
 int LenOfUInt(uint32_t num);

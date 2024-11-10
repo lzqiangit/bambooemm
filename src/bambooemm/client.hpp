@@ -7,12 +7,17 @@
 #include "filterposition.hpp"
 
 #include <unordered_map>
+#include <string>
+
 class Client
 {
 private:
     /* data */
     int n;
     BambooEMM *bemm;
+    uint32_t K, Ku;   // 种子
+    unordered_map<string, int*>  *emmST;
+
 
 public:
     Client(/* args */);
@@ -27,10 +32,25 @@ public:
     void ReEncrypt(vector<KV *> kvList, char *key = nullptr);
 
     char *EncValue(char *kvcr);
+
+    /**
+     * 删除
+     */
+    void Update(char *key, uint32_t counter, char op, char *value);
+
+private:
+    char *SpliceX(char *key, int st0);
+    /**
+     * 拼接 操作对应的操作符和val
+     */
+    char *Client::SpliceOpVal(char op, uint32_t counter, char *val); 
 };
 
 Client::Client(/* args */)
 {
+    emmST = new unordered_map<string, int*>();
+    K = 3;
+    Ku = 3;
 }
 
 Client::~Client()
@@ -163,6 +183,52 @@ char *Client::EncValue(char *kvcr)
     return enc_value;
 }
 
-//
+/**
+ * 更新EMMst中的数据,调用服务端添的接口,向EMMu中添加一项数据
+ * - 更新EMMst:
+ *   EMMst[label][1]++;
+ * - 向EMMu中添加数据
+ *   EMMu[y] <- 
+ */
+void Client::Update(char *key, uint32_t counter, char op, char *value) {
+    if (emmST->find(key) == emmST->end()) {
+        (*emmST)[key] = new int[2]{0, 0};
+    }
+    char *spliceX = SpliceX(key, (*emmST)[key][0]);
+    uint32_t x = BOBHash::run(spliceX, strlen(spliceX), Ku);
+    // Question ！！！！！
+    uint32_t y = BOBHash::run((char*)x, sizeof(uint32_t), x);  // 这里直接按照char*处理???      // 这个哈希的种子只能是质数？？
+    // 获取y
+    char *opv = SpliceOpVal(op, counter, value);        // 长度？？？
+    // 加密
+    char *encOpv;
+    int encLen;
+    aes_encrypt_string(LoadKey(), opv, strlen(opv), encOpv, &encLen); 
+    char *decOpv;
+    int decLen;
+    aes_decrypt_string(LoadKey(), encOpv, encLen, decOpv, &decLen);
+    cout << decOpv << endl;
+    // 上传服务器
+}
 
+char *Client::SpliceX(char *key, int st0) {
+    string keyStr = key;
+    string st0Str = to_string(st0);
+    string xStr = keyStr + "|" + st0Str; 
+    char *ret = new char[xStr.length() + 1];
+    memset(ret, 0, xStr.length() + 1);
+    memcpy(ret, xStr.c_str(), xStr.length());
+    return ret;
+}
+
+char *Client::SpliceOpVal(char op, uint32_t counter, char *val) {
+    string opStr = "" + op;
+    string counterStr = to_string(counter);
+    string valStr = val;
+    string splice = op + "|" + counterStr + "|" + valStr;
+    char *ret = new char[splice.length() + 1];
+    memset(ret, 0, splice.length() + 1);
+    memcpy(ret, splice.c_str(), splice.length());
+    return ret;
+}
 #endif

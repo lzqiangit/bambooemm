@@ -6,7 +6,9 @@
 #include <iostream>
 #include <string>
 #include <random>
-#include "keyvaluetools.hpp"
+#include <openssl/aes.h>
+#include <openssl/rand.h>
+#include <openssl/evp.h>
 #define RAND_LEN 2
 
 int aes_encrypt_string(char *_pPassword, char *_pInput, int _InLen, char *_pOutBuf, int *_pOutLen);
