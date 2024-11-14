@@ -131,9 +131,9 @@ bool BambooFilter::Lookup(const char *key, vector<char *> &values) const
 
     GenerateIndexTagHash(key, seg_index, bucket_index, tag);
     // ****************************************************************
-    cout << key << " # " << seg_index << " # "<< bucket_index << " # "<< tag << " # ";
+    //cout << key << " # " << seg_index << " # "<< bucket_index << " # "<< tag << " # ";
     bool ret = hash_table_[seg_index]->Lookup(bucket_index, tag, values);
-    cout << values.size() - starLen << endl;
+    //cout << values.size() - starLen << endl;
     return ret;
 }
 

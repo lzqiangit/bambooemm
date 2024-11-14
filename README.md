@@ -14,10 +14,11 @@ make
 ## 方案介绍
 初始化和插入时,将所有的key均按照存在最大容量个数的value填充至emm,对于value不存在(key|counter),value处填充enc(key|counter|0) 
 
-
+## 修改value的存储方案
+- [ ] 冲突的value存储到同一个entry的value中
 ## 实现update
-- [ ] 实现带种子的哈希
-- [ ] EMMu,st的数据结构定义    (每次只有一个value!)
+- ~~[ ] 实现带种子的哈希 ~~(先直接拼接吧)
+- [ ] EMMu,st的数据结构定义    (每次只有一个value!)     -- EMMu的大小?? EMMu设置为哈希表，碰撞了咋整？
 - [ ] 实现更新函数 Clien::Update(key,op,value) - Server::Update(y, EMMu元素)
 ## 实现reinsert 
 ! 先填充，后加密

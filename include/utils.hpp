@@ -35,4 +35,5 @@ void print_uint64(uint64_t num);
 void print_64title();
 
 char* copy_const_str(const char* cstr);
+
 #endif

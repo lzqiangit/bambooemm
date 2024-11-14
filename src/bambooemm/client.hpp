@@ -8,6 +8,7 @@
 
 #include <unordered_map>
 #include <string>
+#include <sstream>
 
 class Client
 {
@@ -16,7 +17,7 @@ private:
     int n;
     BambooEMM *bemm;
     uint32_t K, Ku;   // 种子
-    unordered_map<string, int*>  *emmST;
+    unordered_map<string, uint32_t*>  *EMMst;
 
 
 public:
@@ -40,15 +41,17 @@ public:
 
 private:
     char *SpliceX(char *key, int st0);
+    char *SpliceY(uint32_t emm1, uint32_t x);
     /**
      * 拼接 操作对应的操作符和val
      */
-    char *Client::SpliceOpVal(char op, uint32_t counter, char *val); 
+    char *SpliceOpVal(char op, uint32_t counter, char *val); 
+    
 };
 
 Client::Client(/* args */)
 {
-    emmST = new unordered_map<string, int*>();
+    EMMst = new unordered_map<string, uint32_t*>();
     K = 3;
     Ku = 3;
 }
@@ -65,7 +68,7 @@ void Client::SetupEMM(vector<KV *> kvList, int n, int l)
     this->n = n;
     vector<KV *> maxCounterKVList; // 存储每个key中counter最大的元素
     this->bemm = new BambooEMM();
-    this->bemm->Setup(2, MIN_STAR_CAP, l, LoadKey());
+    this->bemm->Setup(2, MIN_STAR_CAP, l, LoadKey());           // LoadKey应该作为函数参数传入好一些!!!
     char *tempKey = kvList.at(0)->key;
     for (int i = 0; i < kvList.size(); i++)
     {
@@ -185,47 +188,71 @@ char *Client::EncValue(char *kvcr)
 
 /**
  * 更新EMMst中的数据,调用服务端添的接口,向EMMu中添加一项数据
- * - 更新EMMst:
- *   EMMst[label][1]++;
- * - 向EMMu中添加数据
- *   EMMu[y] <- 
+ * x <- hash(key||MMst[key][0], len, Ku);   // 用于计算EMMu中index的中间值
+ * y <- hash(MMst[kye][1]||x, len, Ku) % EMMu.length();     // EMMu的索引值
+ * z <- Enc(Kenc, (op, counter,v));
+ * EMMu[y] <- z
+ * EMMst[label][1]++;
  */
 void Client::Update(char *key, uint32_t counter, char op, char *value) {
-    if (emmST->find(key) == emmST->end()) {
-        (*emmST)[key] = new int[2]{0, 0};
+    // 在st中找不到key,需要初始化
+    if (EMMst->find(key) == EMMst->end()) {     
+        (*EMMst)[key] = new uint32_t[2]{0, 0};
     }
-    char *spliceX = SpliceX(key, (*emmST)[key][0]);
+    char *spliceX = SpliceX(key, (*EMMst)[key][0]);
     uint32_t x = BOBHash::run(spliceX, strlen(spliceX), Ku);
     // Question ！！！！！
-    uint32_t y = BOBHash::run((char*)x, sizeof(uint32_t), x);  // 这里直接按照char*处理???      // 这个哈希的种子只能是质数？？
+    char *spliceY = SpliceY((*EMMst)[key][1], x);
+    uint32_t y = BOBHash::run(spliceY, strlen(spliceY), Ku);  // 这里直接按照char*处理???      // 这个哈希的种子只能是质数？？ 不用了
     // 获取y
     char *opv = SpliceOpVal(op, counter, value);        // 长度？？？
     // 加密
-    char *encOpv;
+    char *encOpv = new char[32];
     int encLen;
-    aes_encrypt_string(LoadKey(), opv, strlen(opv), encOpv, &encLen); 
-    char *decOpv;
+    aes_encrypt_string(LoadKey(), opv, strlen(opv) + 1, encOpv, &encLen); 
+    char *decOpv = new char[32];
     int decLen;
     aes_decrypt_string(LoadKey(), encOpv, encLen, decOpv, &decLen);
-    cout << decOpv << endl;
+
+    char *dec = new char[decLen + 1];
+    memset(dec, 0, decLen + 1);
+    memcpy(dec, decOpv, decLen);
+
+    delete []opv;
+    delete []encOpv;
+    delete []decOpv;
+
+    //cout << decOpv << endl;       # 函数返回报错 Seg fault!!!!!!
     // 上传服务器
+    
 }
 
+/**********************************************  Splice  *******************************************************************/
 char *Client::SpliceX(char *key, int st0) {
     string keyStr = key;
     string st0Str = to_string(st0);
     string xStr = keyStr + "|" + st0Str; 
     char *ret = new char[xStr.length() + 1];
     memset(ret, 0, xStr.length() + 1);
-    memcpy(ret, xStr.c_str(), xStr.length());
+    memcpy(ret, (char*)xStr.c_str(), xStr.length());
+    return ret;
+}
+
+char *Client::SpliceY(uint32_t emm1, uint32_t x) {
+    string emm1Str = to_string(emm1);
+    string xStr = to_string(x);
+    string splice = emm1Str + "|" + xStr;
+    char *ret = new char[splice.length() + 1];
+    memset(ret, 0, splice.length() + 1);
+    memcpy(ret, (char*)splice.c_str(), splice.length());
     return ret;
 }
 
 char *Client::SpliceOpVal(char op, uint32_t counter, char *val) {
-    string opStr = "" + op;
-    string counterStr = to_string(counter);
-    string valStr = val;
-    string splice = op + "|" + counterStr + "|" + valStr;
+    stringstream ss;
+
+    ss << op << "|" << counter << "|" << val;
+    string splice = ss.str();
     char *ret = new char[splice.length() + 1];
     memset(ret, 0, splice.length() + 1);
     memcpy(ret, splice.c_str(), splice.length());

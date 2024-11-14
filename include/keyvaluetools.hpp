@@ -30,6 +30,7 @@ char *RandomNumStr(int len, int pre);
 *               _pOutBuf    :   输出AES编码数据
 *               _pOutLen    :   输出AES编码数据长度
 *   返 回 值: 0：成功, -1：失败
+*   注意: 传入的指针需要提前申请空间,否则会报Segmentation fault
 *****************************************************************************************
 */
 int aes_encrypt_string(char *_pPassword, char *_pInput, int _InLen, char *_pOutBuf, int *_pOutLen)
