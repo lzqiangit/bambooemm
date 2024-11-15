@@ -69,18 +69,26 @@ public:
 
     ~BambooFilter();
 
-    bool Insert(const char *key, char *value);
-    bool Lookup(const char *key, vector<char *> &values) const;
+    /**
+     * 用于初始化(和插入不存在的key?)的时候,占据新指纹位置,并插入value
+     */
+    bool Insert(const char *key, ValueEntry valueE);
+    bool Lookup(const char *key, ValueEntry &valueE);
     bool Delete(const char *key);
 
     void Extend();
     void Compress();
     void Encrypt(char *password);
     /**
-     * 更新value值
-     * n : 该key第n个元素
+     * 初始化时,用于拼接value的明文
+     * key key
+     * appendValue 需要拼接的value
      */
-    void UpdateValue(FilterPosition bf, vector<char *> vals);
+    bool SetupAppend(const char *key, char *appendValue);
+    /**
+     *  用于查询操作的时候融合更新修改key对应的value值
+     */
+    void UpdateValue(char* key, ValueEntry valueE);
 };
 
 BambooFilter::BambooFilter(uint32_t capacity, uint32_t split_condition_param)
@@ -106,13 +114,13 @@ BambooFilter::~BambooFilter()
     }
 }
 
-bool BambooFilter::Insert(const char *key, char *value)
+bool BambooFilter::Insert(const char *key, ValueEntry valueE)
 {
     uint32_t seg_index, bucket_index, tag;
 
     GenerateIndexTagHash(key, seg_index, bucket_index, tag);
 
-    hash_table_[seg_index]->Insert(bucket_index, tag, value);
+    hash_table_[seg_index]->Insert(bucket_index, tag, valueE);
 
     num_items_++;
 
@@ -124,16 +132,20 @@ bool BambooFilter::Insert(const char *key, char *value)
     return true;
 }
 
-bool BambooFilter::Lookup(const char *key, vector<char *> &values) const
+bool BambooFilter::Lookup(const char *key, ValueEntry &valueE)
 {
-    int starLen = values.size();
+    // cout << "Key: " << key << endl;
+    // string cp = "key_70";
+    // if ( strcmp((char*)key, (char*)cp.c_str()) == 0 ) {
+    //     cout << endl;
+    // }
+    
     uint32_t seg_index, bucket_index, tag;
 
     GenerateIndexTagHash(key, seg_index, bucket_index, tag);
-    // ****************************************************************
-    //cout << key << " # " << seg_index << " # "<< bucket_index << " # "<< tag << " # ";
-    bool ret = hash_table_[seg_index]->Lookup(bucket_index, tag, values);
-    //cout << values.size() - starLen << endl;
+    
+    bool ret = hash_table_[seg_index]->Lookup(bucket_index, tag, valueE);
+
     return ret;
 }
 
@@ -202,10 +214,25 @@ void BambooFilter::Encrypt(char *password)
     }
 }
 
-/**
- * 
- */
-void BambooFilter::UpdateValue(FilterPosition bf, vector<char *> vals)
+bool BambooFilter::SetupAppend(const char *key, char *appendValue) {
+    uint32_t seg_index, bucket_index, tag;
+
+    GenerateIndexTagHash(key, seg_index, bucket_index, tag);
+    ValueEntry *valueEP = hash_table_[seg_index]->LookupP(bucket_index, tag);
+    if (valueEP == nullptr) {
+        return false;
+    } 
+    valueEP->AppendValue(strlen(appendValue), appendValue);
+    return true;
+}
+
+
+void BambooFilter::UpdateValue(char* key, ValueEntry valueE)
 {
-    hash_table_[bf.seg]->UpdateValue(bf.bucket, bf.tag, vals);
+    uint32_t seg_index, bucket_index, tag;
+
+    GenerateIndexTagHash(key, seg_index, bucket_index, tag);
+    ValueEntry *valueEP = hash_table_[seg_index]->LookupP(bucket_index, tag);
+
+    valueEP->CpFrom(valueE);
 }

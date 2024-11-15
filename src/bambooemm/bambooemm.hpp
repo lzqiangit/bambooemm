@@ -30,20 +30,19 @@ public:
     }
 
     bool Setup(int split_condition_param, int n, int l, char *password);
-    bool LoadMM(vector<KV *> mm);
-    bool Insert(KV *kv);
+    //bool LoadMM(vector<KV *> mm);
+    bool SetupInsert(KV *kv);
     /**
      * query前是否需要加密？
      */
-    vector<char *> Query(const char *key);
+    vector<ValueEntry> Query(const char *key);
     bool isExistKeyCounter(char *key, int counter);
     BambooFilter *getEMM();
     void Encrypt(char *password);
     /**
-     * 传入需要重新插入的kvList
-     * 将列表中的value重新填充到对应位置
+     * 用于查询操作融合更新时, 重新对key对于的valueEntry复制
      */
-    void ReInsert(map<FilterPosition, vector<char *>> updateMap);
+    void ReInsert(char* key, ValueEntry valueE);
 };
 
 bool BambooEMM::Setup(int split_condition_param, int n, int l, char *password)
@@ -56,44 +55,59 @@ bool BambooEMM::Setup(int split_condition_param, int n, int l, char *password)
     return true;
 }
 
-bool BambooEMM::LoadMM(vector<KV *> mm)
-{
-    for (KV *kv : mm)
-    {
-        uint32_t id = get_value_id(kv->value);
-        delete kv->value;
-        kv->value = new char[BYTE_PER_VALUE];
-        memcpy(kv->value, &id, BYTE_PER_VALUE);
-        Insert(kv);
-    }
-    return true;
-}
-bool BambooEMM::Insert(KV *kv)
+/**
+ * 用于测试?
+ */
+// bool BambooEMM::LoadMM(vector<KV *> mm)
+// {
+//     for (KV *kv : mm)
+//     {
+//         uint32_t id = get_value_id(kv->value);
+//         delete kv->value;
+//         kv->value = new char[BYTE_PER_VALUE];
+//         memcpy(kv->value, &id, BYTE_PER_VALUE);
+//         SetupInsert(kv);
+//     }
+//     return true;
+// }
+
+/**
+ * 用于初始化时调用, 此时为明文状态
+ */
+bool BambooEMM::SetupInsert(KV *kv)
 {
     uint32_t seg_index, bucket_index, tag;
 
     uint32_t hash_key = BOBHash::run(kv->key, strlen(kv->key), 3);
     char *key_counter = SpliceKey(hash_key, kv->counter);
-    char *kvc = SpliceValue(kv);
-    if (strlen(kvc) > 32)
-    {
-        cout << "<ERROR> key||value||counter 拼接长度超过32!" << endl;
+    char *kvc = SpliceValue(kv);    // 现在kvc没有长度限制了!
+    ValueEntry valueE;
+    bool ret;
+    if (bf->Lookup(kv->key, valueE)) {
+        // 找到了
+        ret = bf->SetupAppend(key_counter, kv->value);
+    } else {
+        valueE.SetValue(strlen(kvc) + 1, kvc);
+        ret = bf->Insert(key_counter, valueE);
     }
-    bool ret = bf->Insert(key_counter, kvc);
+     
     delete[] key_counter;
     delete[] kvc;
     return ret;
 }
 
-vector<char *> BambooEMM::Query(const char *key)
+vector<ValueEntry> BambooEMM::Query(const char *key)
 {
-    vector<char *> ret;
+    vector<ValueEntry> ret;
     uint32_t seg_index, bucket_index, tag;
     uint32_t hashKey = BOBHash::run(key, strlen(key), 3);
     for (int i = 0; i < max_volume; i++)
     {
         char *hashKey_counter = SpliceKey(hashKey, i);
-        bf->Lookup(hashKey_counter, ret);
+        ValueEntry valueE;
+        bf->Lookup(hashKey_counter, valueE);
+        ret.push_back(valueE);
+
     }
     return ret;
 }
@@ -105,8 +119,9 @@ bool BambooEMM::isExistKeyCounter(char *key, int counter)
     uint32_t hashKey = BOBHash::run(key, strlen(key), 3);
 
     char *hashKey_counter = SpliceKey(hashKey, counter);
-    bf->Lookup(hashKey_counter, ret);
-    return ret.size() > 0;
+    ValueEntry valueE;
+    return bf->Lookup(hashKey_counter, valueE);
+    
 }
 
 BambooFilter *BambooEMM::getEMM()
@@ -128,14 +143,11 @@ void BambooEMM::Encrypt(char *password)
 /**
  * 
  */
-void BambooEMM::ReInsert(map<FilterPosition, vector<char *>> updateMap)
+void BambooEMM::ReInsert(char* key, ValueEntry valueE)
 {
 
-    for (const auto &e : updateMap) {
-        FilterPosition fp = e.first;
-        vector<char*> vals = e.second;
-        bf->UpdateValue(fp, vals);
-    }
+    bf->UpdateValue(key, valueE);
+
 }
 
 #endif

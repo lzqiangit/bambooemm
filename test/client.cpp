@@ -2,9 +2,12 @@
 #include "client.hpp"
 #include "utils.hpp"
 #include <vector>
+#include <cstring>
 #include "keyvaluetools.hpp"
+
 using namespace std;
 
+/*
 void Mapping()
 {
     int n, l;
@@ -15,7 +18,6 @@ void Mapping()
 
 void QueryAfterMapping()
 {
-
     int n, l;
     vector<KV *> kvList = LoadKVList(n, l);
     vector<int> volumnList = LoadVolumn();
@@ -250,8 +252,78 @@ void update() {
     client->Update((char*)key.c_str(), 0, OP_DELETE, (char*)val.c_str());
 }
 
+*/
+
+/**
+ * 修改方案，将冲突key的value存储在同一给指纹entry的value中后测试程序是否能跑
+ */
+
+void TestBasFunction() {
+    int n, l;
+    vector<KV *> kvList = LoadKVList(n, l);
+    vector<int> volumnList = LoadVolumn();
+    Client *client = new Client();
+    cout << "初始化..." << endl;
+    client->SetupEMM(kvList, n, l);
+
+    cout << "初始化结束,准备查询!" << endl;
+    BambooEMM *bemm = client->getBEMM();
+
+    char *password = LoadKey();
+    int decLen;
+    int counter = 0;
+    char *tempKey, *tempValue;
+    int tempCounter, tempRandom;
+
+
+    for (int i = 0; i < 6; i++)
+    { // 16384
+        string key = "key_" + to_string(i);
+        vector<ValueEntry> values = bemm->Query((char *)key.c_str());
+        for (int j = 0; j < values.size(); j++)
+        {
+            ValueEntry value = values.at(j);
+            char *dec = new char[value.getLen()];
+            memset(dec, 0, 32);
+            if (aes_decrypt_string(LoadKey(), value.getP(), value.getLen(), dec, &decLen) == -1)
+            {
+                cout << key << "|" << j << endl;
+            }
+            cout << dec << " # " << endl;
+        }
+    }
+}
+
+
+void testCP() {
+
+    string **sarr = new string*[8];
+    for (int i=0; i<8; i++) {
+        sarr[i] = new string();
+        *sarr[i] = "hello-" + to_string(i);
+    }
+    cout << "================" << "*sarr" << endl;
+    for (int i=0; i<8; i++) {
+        cout << sarr[i] << "\t" << *(sarr[i]) << endl;
+    }
+
+    string **sarr1 = new string*[16];
+    for (int i=0; i<2; i++) {
+        memcpy(sarr1 + i*8, sarr + i*4, 4 * sizeof(string*));
+        for (int j=0; j<4; j++) {
+            sarr1[i*8 + 4 + j] = new string("nice-" + to_string(j));
+        } 
+    }
+    
+    delete[] sarr;
+    cout << "========del========" << "*sarr1" << endl;
+    for (int i=0; i<16; i++) {
+        cout << sarr1[i] << "\t" << *(sarr1[i]) << endl;
+    }
+}
+
 int main(int argc, char const *argv[])
 {
-    update();
+    TestBasFunction();
     return 0;
 }

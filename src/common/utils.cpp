@@ -210,8 +210,7 @@ uint32_t get_value_id(const char* value) {
     }  
       
     std::string idStr = input.substr(pos + 1);  
-      
-    // ʹ���ַ������� id ����ת��Ϊ unsigned int  
+    // 
     uint32_t id;  
     std::istringstream iss(idStr);  
     if (!(iss >> id)) {  

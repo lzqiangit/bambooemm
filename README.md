@@ -25,3 +25,10 @@ make
 - [x] 在value后拼接用于实现前后向安全的随机数: 完善value的拼接和解析
 - [x] 修改加密方案，先填充，后加密，对于冲突的部分，如果已存储的是空值，那么就覆盖
 - [x] 实现从bemm中取回数据,修改value后的随机数,然后放回到bemm中
+
+
+bug:
+value 查询错误Key: key_11698
+value 查询错误Key: key_11698
+value 查询错误Key: key_11698
+value 查询错误Key: key_11699

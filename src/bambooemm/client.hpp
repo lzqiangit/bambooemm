@@ -72,7 +72,7 @@ void Client::SetupEMM(vector<KV *> kvList, int n, int l)
     char *tempKey = kvList.at(0)->key;
     for (int i = 0; i < kvList.size(); i++)
     {
-        this->bemm->Insert(kvList.at(i)); // counter必须从0开始而且连续 yes
+        this->bemm->SetupInsert(kvList.at(i)); // counter必须从0开始而且连续 yes
         if (i == kvList.size() - 1)
         {
             maxCounterKVList.push_back(kvList.at(i));
@@ -106,7 +106,7 @@ void Client::MappingStep(vector<KV *> kvList, int l)
             KV *kv = new KV(key, "00000", ++counter);
             if (!(this->bemm->isExistKeyCounter(kv->key, kv->counter)))
             {
-                this->bemm->Insert(kv);
+                this->bemm->SetupInsert(kv);
             }
             else
             {
@@ -159,11 +159,8 @@ void Client::ReEncrypt(vector<KV *> kvList, char *keyA = nullptr)
             tv.push_back(encKvcr);
             updateMap.insert(pair<FilterPosition, vector<char *>>(tempFP, tv));        
         }
-           
+           //bemm->ReInsert(updateMap);
     }
-
-
-    bemm->ReInsert(updateMap);
 }
 
 char *Client::EncValue(char *kvcr)
