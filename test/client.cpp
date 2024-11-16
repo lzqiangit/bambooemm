@@ -98,77 +98,6 @@ void TestQueryRet()
     cout << "增加通信开销:" << moreTransCast << "|" << n << "(" << (float)moreTransCast / (float)(16384 * l) * 100.f << "%)" << endl;
 }
 
-void ReInsert()
-{
-
-    int n, l;
-    vector<KV *> kvList = LoadKVList(n, l);
-    vector<int> volumnList = LoadVolumn();
-    Client *client = new Client();
-    cout << "初始化..." << endl;
-    client->SetupEMM(kvList, n, l);
-
-    cout << "初始化结束,准备查询!" << endl;
-    BambooEMM *bemm = client->getBEMM();
-
-    char *password = LoadKey();
-    char *dec = new char[32];
-    int decLen;
-    int counter = 0;
-    char *tempKey, *tempValue;
-    int tempCounter, tempRandom;
-
-    string key = "key_" + to_string(1055);                // in
-    // cout << "****************************************************" << endl;
-    vector<char *> values = bemm->Query((char *)key.c_str());
-    // cout << "****************************************************" << endl;
-    vector<KV *> rKVList;
-    char *tKey, *tval;
-    int tcounter, trandom;
-    cout << key << ": ";
-    for (int j = 0; j < values.size(); j++)
-    {
-        char *value = values.at(j);
-        memset(dec, 0, 32);
-        if (aes_decrypt_string(LoadKey(), value, BYTE_PER_VALUE, dec, &decLen) == -1)
-        {
-            cout << key << "|" << j << endl;
-        }
-        cout << dec << " @ ";
-
-        ResolveValue(dec, tKey, tcounter, tval, trandom);
-
-        KV *tkv = new KV(tKey, tval, tcounter);
-        tkv->random = trandom;
-        rKVList.push_back(tkv);
-    }
-    cout << endl
-         << endl;
-
-    client->ReEncrypt(rKVList);
-
-    values = bemm->Query((char *)key.c_str());
-    cout << key << ": ";
-    for (int j = 0; j < values.size(); j++)
-    {
-        char *value = values.at(j);
-        memset(dec, 0, 32);
-        if (aes_decrypt_string(LoadKey(), value, BYTE_PER_VALUE, dec, &decLen) == -1)
-        {
-            cout << key << "|" << j << endl;
-        }
-        cout << dec << " @ ";
-    }
-    cout << endl
-         << endl;
-}
-
-void deleteValues(vector<char*> values) {
-    for (char* value : values) {
-        delete []value;
-    }
-}
-
 void TestReInsertAll()
 {
     int n, l;
@@ -254,11 +183,9 @@ void update() {
 
 */
 
-/**
- * 修改方案，将冲突key的value存储在同一给指纹entry的value中后测试程序是否能跑
- */
+void testReInsert()
+{
 
-void TestBasFunction() {
     int n, l;
     vector<KV *> kvList = LoadKVList(n, l);
     vector<int> volumnList = LoadVolumn();
@@ -298,6 +225,100 @@ void TestBasFunction() {
 }
 
 
+/**
+ * 修改方案，将冲突key的value存储在同一给指纹entry的value中后测试程序是否能跑
+ */
+void TestBasFunction() {
+    int n, l;
+    vector<KV *> kvList = LoadKVList(n, l);
+    vector<int> volumnList = LoadVolumn();
+    Client *client = new Client();
+    cout << "初始化..." << endl;
+    client->SetupEMM(kvList, n, l);
+
+    cout << "初始化结束,准备查询!" << endl;
+    BambooEMM *bemm = client->getBEMM();
+
+    char *password = LoadKey();
+    int decLen;
+    int counter = 0;
+    char *tempKey, *tempValue;
+    int tempCounter, tempRandom;
+
+
+    for (int i = 0; i < 10; i++)
+    { // 16384
+        string key = "key_" + to_string(i);
+        vector<ValueEntry> values = bemm->Query((char *)key.c_str());
+        cout << "################################################################################" << endl;
+        cout << key << ": " << endl;
+        for (int j = 0; j < values.size(); j++)
+        {
+            ValueEntry value = values.at(j);
+            char *dec = new char[value.getLen()];
+            memset(dec, 0, 32);
+            if (aes_decrypt_string(LoadKey(), value.getP(), value.getLen(), dec, &decLen) == -1)
+            {
+                cout << key << "|" << j << endl;
+            }
+            cout << dec << endl;
+        }
+        
+    }
+}
+
+/**
+ * 测试ValueEntry类的加密解密拼接等功能
+ */
+void testValueEntryFunction() {
+    int n, l;
+    vector<KV *> kvList = LoadKVList(n, l);
+    vector<int> volumnList = LoadVolumn();
+    Client *client = new Client();
+    cout << "初始化..." << endl;
+    client->SetupEMM(kvList, n, l);
+
+    cout << "初始化结束,准备查询!" << endl;
+    BambooEMM *bemm = client->getBEMM();
+
+    char *password = LoadKey();
+    int decLen;
+    int counter = 0;
+    char *tempKey, *tempValue;
+    int tempCounter, tempRandom;
+
+
+    for (int i = 0; i < 16384; i++)
+    { // 16384
+        string key = "key_" + to_string(i);
+        vector<ValueEntry> values = bemm->Query((char *)key.c_str());
+        cout << "################################################################################" << endl;
+        cout << key << ": " << endl;
+        for (int j = 0; j < values.size(); j++)
+        {
+            ValueEntry value = values.at(j);
+            char *dec = new char[value.getLen()];
+            memset(dec, 0, 32);
+            if (aes_decrypt_string(LoadKey(), value.getP(), value.getLen(), dec, &decLen) == -1)
+            {
+                cout << key << "|" << j << endl;
+            }
+            cout << dec << endl;
+
+            value.Dec(LoadKey());
+            int random = value.DivRandom();
+            vector<char*> valList = value.DivValue();
+            for (char *val : valList) {
+                cout << val << "\t";
+            }
+            cout << random << endl;
+            cout << "------------------------------------------------------------------" << endl;
+        }
+        
+    }
+}
+
+
 void testCP() {
 
     string **sarr = new string*[8];
@@ -327,6 +348,6 @@ void testCP() {
 
 int main(int argc, char const *argv[])
 {
-    TestBasFunction();
+    testValueEntryFunction();
     return 0;
 }

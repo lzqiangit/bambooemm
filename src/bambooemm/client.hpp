@@ -86,7 +86,7 @@ void Client::SetupEMM(vector<KV *> kvList, int n, int l)
     }
     MappingStep(maxCounterKVList, l);
     // 加密
-    bemm->Encrypt(LoadKey());
+    bemm->AddRandomAndEncrypt(LoadKey());
 }
 
 /**
@@ -103,7 +103,7 @@ void Client::MappingStep(vector<KV *> kvList, int l)
         key = kv->key;
         for (int i = counter; i < l; i++)
         {
-            KV *kv = new KV(key, "00000", ++counter);
+            KV *kv = new KV(key, "0", ++counter);
             if (!(this->bemm->isExistKeyCounter(kv->key, kv->counter)))
             {
                 this->bemm->SetupInsert(kv);
@@ -139,8 +139,8 @@ void Client::ReEncrypt(vector<KV *> kvList, char *keyA = nullptr)
     {
         bool flag = true;  // 是否未被记录
         char *key = SpliceKey(BOBHash::run(kv->key, strlen(kv->key), 3), kv->counter);
-        char *kvcr = SpliceValue(kv, kv->random);
-        char *encKvcr = EncValue(kvcr);
+        char *kvc = SpliceValue(kv);
+        char *encKvcr = EncValue(kvc);
 
         uint32_t seg_index, bucket_index, tag;
 

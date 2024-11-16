@@ -36,4 +36,7 @@ void print_64title();
 
 char* copy_const_str(const char* cstr);
 
+int aes_encrypt_string(char *_pPassword, char *_pInput, int _InLen, char *_pOutBuf, int *_pOutLen);
+int aes_decrypt_string(char *_pPassword, char *_pInput, int _InLen, char *_pOutBuf, int *_pOutLen);
+
 #endif

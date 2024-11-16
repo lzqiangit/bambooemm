@@ -38,7 +38,7 @@ public:
     vector<ValueEntry> Query(const char *key);
     bool isExistKeyCounter(char *key, int counter);
     BambooFilter *getEMM();
-    void Encrypt(char *password);
+    void AddRandomAndEncrypt(char *password);
     /**
      * 用于查询操作融合更新时, 重新对key对于的valueEntry复制
      */
@@ -76,9 +76,7 @@ bool BambooEMM::Setup(int split_condition_param, int n, int l, char *password)
  */
 bool BambooEMM::SetupInsert(KV *kv)
 {
-    if (kv->value == 39410) {
-        cout << endl;
-    }
+
     uint32_t seg_index, bucket_index, tag;
 
     uint32_t hash_key = BOBHash::run(kv->key, strlen(kv->key), 3);
@@ -132,12 +130,16 @@ BambooFilter *BambooEMM::getEMM()
     return bf;
 }
 
-void BambooEMM::Encrypt(char *password)
+/**
+ * 添加随即谁后加密
+ */
+void BambooEMM::AddRandomAndEncrypt(char *password)
 {
     if (isEnc)
     {
         cout << "重复加密！" << endl;
     }
+    bf->AddRandom();
     // 加密
     bf->Encrypt(password);
     isEnc = true;

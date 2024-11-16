@@ -89,6 +89,10 @@ public:
      *  用于查询操作的时候融合更新修改key对应的value值
      */
     void UpdateValue(char* key, ValueEntry valueE);
+    /**
+     * 向各个段和各桶的各个 `非空` 值的value中添加随机数
+     */
+    void AddRandom();
 };
 
 BambooFilter::BambooFilter(uint32_t capacity, uint32_t split_condition_param)
@@ -235,4 +239,11 @@ void BambooFilter::UpdateValue(char* key, ValueEntry valueE)
     ValueEntry *valueEP = hash_table_[seg_index]->LookupP(bucket_index, tag);
 
     valueEP->CpFrom(valueE);
+}
+
+void BambooFilter::AddRandom() {
+    for (Segment *segment : hash_table_)
+    {
+        segment->AddRandom();
+    }
 }

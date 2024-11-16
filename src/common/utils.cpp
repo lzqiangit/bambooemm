@@ -8,22 +8,24 @@
 #include <sstream>  
 #include <string>  
 #include <stdexcept> 
-#include <bitset>   
+#include <bitset>  
+#include <openssl/aes.h>
+#include <openssl/rand.h>
+#include <openssl/evp.h> 
 using namespace std;
 
 vector<KV *> LoadKVList(int &n, int &l) {
     MYSQL *con = NULL;
-    con = mysql_init(con);//��ʼ��
+    con = mysql_init(con);
     if (con == NULL)
     {
         cout << "Init Connect ERROR" << endl;;
     }
-    string url = "127.0.0.1";    //������ַ
-    unsigned int Port = 3306;   //���ݿ�˿ں�
-    string User = "lzq";   //��½���ݿ��û���
-    string PassWord = "0000";  //��½���ݿ�����
-    string DBName = "kvlist"; //ʹ�����ݿ���
-    //�������ݿ�
+    string url = "127.0.0.1";    
+    unsigned int Port = 3306;   
+    string User = "lzq";   
+    string PassWord = "0000";  
+    string DBName = "kvlist"; 
     con = mysql_real_connect(con, url.c_str(), User.c_str(), PassWord.c_str(), DBName.c_str(), Port, NULL, 0);
 
     if (con == NULL)
@@ -31,19 +33,16 @@ vector<KV *> LoadKVList(int &n, int &l) {
         cout << "Connect Database Error" << endl;
     }
 
-    //ִ��sql��䣬�����ѯ�ɹ���mysql_query()�����᷵��0�����򣬷��ط���ֵ��ʾ��������
     mysql_query(con, "select * from random");
 
     MYSQL_RES *res;
     MYSQL_ROW row;
-    //���ִ�н��
     res = mysql_use_result(con);
     const char * csname = "utf8";
     mysql_set_character_set(con, csname);
 
-    //��ȡ�ֶθ���������ѯ��õĽ�����м�������
     int nums = 0;  
-    nums = mysql_num_fields(res);  //���ڱ��ṹ�Ļ�ȡ
+    nums = mysql_num_fields(res);  
 
     MYSQL_FIELD * fields;
     vector<KV *> kvList;
@@ -51,7 +50,7 @@ vector<KV *> LoadKVList(int &n, int &l) {
     l = 0;
     int tempL = 0;
     char *bkey = nullptr;
-    while( (row = mysql_fetch_row(res)) != nullptr)  //mysql_fetch_row()������ָ���Ľ�����л�ȡһ�����ݷ��ظ�row�����������ʽ����row�ڲ����ַ�������ָ�루����ָ�룩
+    while( (row = mysql_fetch_row(res)) != nullptr)
     {
         ++n;
         char *key = new char[(strlen(row[0]) + 1)];
@@ -88,12 +87,11 @@ vector<int> LoadVolumn() {
     {
         cout << "Init Connect ERROR" << endl;;
     }
-    string url = "127.0.0.1";    //������ַ
-    unsigned int Port = 3306;   //���ݿ�˿ں�
-    string User = "lzq";   //��½���ݿ��û���
-    string PassWord = "0000";  //��½���ݿ�����
-    string DBName = "kvlist"; //ʹ�����ݿ���
-    //�������ݿ�
+    string url = "127.0.0.1";    
+    unsigned int Port = 3306;  
+    string User = "lzq";
+    string PassWord = "0000";
+    string DBName = "kvlist";
     con = mysql_real_connect(con, url.c_str(), User.c_str(), PassWord.c_str(), DBName.c_str(), Port, NULL, 0);
 
     if (con == NULL)
@@ -101,26 +99,24 @@ vector<int> LoadVolumn() {
         cout << "Connect Database Error" << endl;
     }
 
-    //ִ��sql��䣬�����ѯ�ɹ���mysql_query()�����᷵��0�����򣬷��ط���ֵ��ʾ��������
+
     mysql_query(con, "select count(*) from random group by `key`");
 
     MYSQL_RES *res;
     MYSQL_ROW row;
-    //���ִ�н��
     res = mysql_use_result(con);
     const char * csname = "utf8";
     mysql_set_character_set(con, csname);
 
-    //��ȡ�ֶθ���������ѯ��õĽ�����м�������
     int nums = 0;  
-    nums = mysql_num_fields(res);  //���ڱ��ṹ�Ļ�ȡ
+    nums = mysql_num_fields(res); 
 
     MYSQL_FIELD * fields;
     vector<int> volumeList;
 
     int tempL = 0;
     char *bkey = nullptr;
-    while( (row = mysql_fetch_row(res)) != nullptr)  //mysql_fetch_row()������ָ���Ľ�����л�ȡһ�����ݷ��ظ�row�����������ʽ����row�ڲ����ַ�������ָ�루����ָ�룩
+    while( (row = mysql_fetch_row(res)) != nullptr) 
     {
         char *volum = new char[(strlen(row[0]) + 1)];
     
@@ -240,4 +236,170 @@ char* copy_const_str(const char* cstr) {
     memset(cpy, 0, len + 1);
     memcpy(cpy, cstr, len);
     return cpy;
+}
+
+/*
+*****************************************************************************************
+*   函 数 名: aes_encrypt_string
+*   功能说明: AES加密字符串
+*   形    参:   _pPassword  :   密码
+*               _pInput     :   输入数据
+*               _InLen      :   输入数据长度
+*               _pOutBuf    :   输出AES编码数据
+*               _pOutLen    :   输出AES编码数据长度
+*   返 回 值: 0：成功, -1：失败
+*   注意: 传入的指针需要提前申请空间,否则会报Segmentation fault
+*****************************************************************************************
+*/
+int aes_encrypt_string(char *_pPassword, char *_pInput, int _InLen, char *_pOutBuf, int *_pOutLen)
+{
+    // 上下文结构
+    EVP_CIPHER_CTX *pEn_ctx = NULL;
+
+    int ret = -1;
+    int flen = 0, outlen = 0;
+    int i, nrounds = 1;
+
+    // 存储秘钥和初始化向量
+    unsigned char key[32] = {};
+    unsigned char iv[32] = {};
+
+    // 参数判断
+    if (_pPassword == NULL || _pInput == NULL || _pOutBuf == NULL || _pOutLen == NULL)
+    {
+        return ret;
+    }
+
+    // 设置使用 256 位密钥长度的 AES 加密算法，并采用 CBC 模式。
+    const EVP_CIPHER *cipherType = EVP_aes_256_cbc();
+    if (cipherType == NULL)
+    {
+        goto clean;
+    }
+
+    /*
+     * Gen key & IV for AES 256 CBC mode. A SHA1 digest is used to hash the supplied key material.
+     * nrounds is the number of times the we hash the material. More rounds are more secure but
+     * slower.
+     */
+    // 通过输入密码产生密钥key和初始化向量iv
+    i = EVP_BytesToKey(cipherType, EVP_md5(), NULL, (unsigned char *)_pPassword, strlen(_pPassword), nrounds, key, iv);
+    if (i != 32)
+    {
+        printf("Key size is %d bits - should be 256 bits\n", i);
+        goto clean;
+    }
+
+    pEn_ctx = EVP_CIPHER_CTX_new();                         // 创建加密上下文
+    EVP_CIPHER_CTX_init(pEn_ctx);                           // 初始化 EVP_CIPHER_CTX 上下文
+    EVP_EncryptInit_ex(pEn_ctx, cipherType, NULL, key, iv); // 初始化加密操作
+
+    /* Update cipher text */
+    if (!EVP_EncryptUpdate(pEn_ctx, (unsigned char *)_pOutBuf, &outlen, (unsigned char *)_pInput, _InLen))
+    { // 处理数据
+        cout << "Error,ENCRYPR_UPDATE:" << endl;
+        goto clean;
+    }
+
+    /* updates the remaining bytes */
+    if (!EVP_EncryptFinal_ex(pEn_ctx, (unsigned char *)(_pOutBuf + outlen), &flen))
+    { // 完成加密操作，处理剩余字节
+        cout << "Error,ENCRYPT_FINAL:" << endl;
+        goto clean;
+    }
+
+    *_pOutLen = outlen + flen;
+
+    ret = 0; /* SUCCESS */
+
+clean:
+    // 清理内存
+    if (pEn_ctx)
+        EVP_CIPHER_CTX_cleanup(pEn_ctx);
+    if (pEn_ctx)
+        EVP_CIPHER_CTX_free(pEn_ctx);
+
+    return ret;
+}
+
+/*
+*****************************************************************************************
+*   函 数 名: aes_decrypt_string
+*   功能说明: AES解密得到字符串
+*   形    参:   _pPassword  :   密码
+*               _pInput     :   输入需解密的数据
+*               _InLen      :   输入需解密的数据长度
+*               _pOutBuf    :   输出AES解密后的字符串
+*               _pOutLen    :   输出AES编码数据长度
+*   返 回 值: 0：成功, -1：失败
+*****************************************************************************************
+*/
+int aes_decrypt_string(char *_pPassword, char *_pInput, int _InLen, char *_pOutBuf, int *_pOutLen)
+{
+    // 上下文结构
+    EVP_CIPHER_CTX *pDe_ctx = NULL;
+
+    int ret = -1;
+    int flen = 0, outlen = 0;
+    int i, nrounds = 1;
+
+    // 存储秘钥和初始化向量
+    unsigned char key[32] = {};
+    unsigned char iv[32] = {};
+
+    // 参数判断
+    if (_pPassword == NULL || _pInput == NULL || _pOutBuf == NULL || _pOutLen == NULL)
+    {
+        return ret;
+    }
+
+    // 设置使用 256 位密钥长度的 AES 加密算法，并采用 CBC 模式。
+    const EVP_CIPHER *cipherType = EVP_aes_256_cbc();
+    if (cipherType == NULL)
+    {
+        goto clean;
+    }
+
+    /*
+     * Gen key & IV for AES 256 CBC mode. A SHA1 digest is used to hash the supplied key material.
+     * nrounds is the number of times the we hash the material. More rounds are more secure but
+     * slower.
+     */
+    // 通过输入密码产生密钥key和初始化向量iv
+    i = EVP_BytesToKey(cipherType, EVP_md5(), NULL, (unsigned char *)_pPassword, strlen(_pPassword), nrounds, key, iv);
+    if (i != 32)
+    {
+        printf("Key size is %d bits - should be 256 bits\n", i);
+        goto clean;
+    }
+
+    pDe_ctx = EVP_CIPHER_CTX_new();                         // 创建加密上下文
+    EVP_CIPHER_CTX_init(pDe_ctx);                           // 初始化 EVP_CIPHER_CTX 上下文
+    EVP_DecryptInit_ex(pDe_ctx, cipherType, NULL, key, iv); // 初始化解密操作
+
+    /* Update cipher text */
+    if (!EVP_DecryptUpdate(pDe_ctx, (unsigned char *)_pOutBuf, &outlen, (unsigned char *)_pInput, _InLen))
+    { // 处理数据
+        cout << "Error,DEC_UPDATE:" << _pOutBuf << endl;
+        goto clean;
+    }
+
+    /* updates the remaining bytes */
+    if (EVP_DecryptFinal_ex(pDe_ctx, (unsigned char *)(_pOutBuf + outlen), &flen) != 1)
+    { // 完成解密操作，处理剩余字节
+        cout << "Error,DEC_FINAL!" << _pOutBuf << "|" << flen << endl;
+        goto clean;
+    }
+
+    *_pOutLen = outlen + flen;
+
+    ret = 1;
+clean:
+    // 清理内存
+    if (pDe_ctx)
+        EVP_CIPHER_CTX_cleanup(pDe_ctx);
+    if (pDe_ctx)
+        EVP_CIPHER_CTX_free(pDe_ctx);
+
+    return ret;
 }

@@ -4,6 +4,9 @@
 typedef unsigned int uint32_t;
 #include <cstring>
 #include <string>
+#include "utils.hpp"
+#define RANDOM_MAX 99999999
+#define RANDOM_MAX_LEN 9
 class ValueEntry
 {
 private:
@@ -12,14 +15,27 @@ private:
 public:
     ValueEntry(/* args */);
     /**
-     * len长度应该包含 \0 如果需要的话
+     * len长度应该包含'\0' 如果需要的话
      * 参数p注意释放
      */
     ValueEntry(int len, char *p);
     ValueEntry(const ValueEntry& other);
     ~ValueEntry();
 
+    /**
+     * 设置values值
+     */
     void SetValue(int len, char *p);
+    /**
+     * 通过value数组设置valueEntry中的value值
+     */
+    void SetValue(vector<char*> values);
+
+    /**
+     * 切割并返回valueEntry中存储的各个value,Div前需要剔除random！！！
+     */
+    vector<char*> DivValue();
+
     /**
      * 复制value和p
      * 返回长度
@@ -29,6 +45,7 @@ public:
 
     void CpFrom(ValueEntry ve);
 
+    void Append(char *append);
     /**
      * 用于初始化的时候, 直接再value的明文上面拼接值
      * appendLen 拼接value的长度
@@ -38,12 +55,28 @@ public:
 
     void erase();
 
+    /**
+     * 加密values
+     */
+    bool Enc(char *password);
+    /**
+     * 解密values
+     */
+    bool Dec(char *password);
+
+    /**
+     * 在values后面添加random
+     */
+    void SpliceRandom(int pre = 0);
+    /**
+     * 剔除values后面的random
+     */
+    int DivRandom();
+
     int getLen() const;
     char *getP() const;
 
-    // 
     ValueEntry& operator=(ValueEntry &ve);
-
 };
 
 ValueEntry::ValueEntry()
@@ -87,11 +120,38 @@ void ValueEntry::SetValue(int len, char *p) {
     memcpy(this->p, p, len);
 }
 
+void ValueEntry::SetValue(vector<char*> values) {
+    int num = values.size();
+    int sumLen = 0;
+    for (char *value : values) {
+        sumLen += strlen(value);
+    }
+    sumLen += num;  // num - 1 + 1 算上了 \0
+    char *tempP = new char[sumLen];
+    memset(tempP, 0, sumLen);
+
+    sprintf(tempP, "%s", values[0]);
+    int star = strlen(values[0]);
+    for(int i=1; i<num; i++) {
+        char *value = values.at(i);
+        int len = strlen(value);
+        sprintf(tempP + star, ",%s", value);
+        star += len + 1;
+    }
+
+    if (this->len != 0) {
+        delete[] p;
+    }
+    this->len = sumLen;
+    this->p = tempP;
+}
+
 char *ValueEntry::DuplicateValue(int &len, char *dv) {
     len = this->len;
     dv = new char[len];
     memset(dv, 0, len);
     memcpy(dv, this->p, len);
+    return dv;
 }
 
 void ValueEntry::CpFrom(ValueEntry ve) {
@@ -102,6 +162,17 @@ void ValueEntry::CpFrom(ValueEntry ve) {
     this->p = new char[len];
     memset(this->p, 0, this->len);
     memcpy(this->p, ve.getP(), this->len);
+}
+
+void ValueEntry::Append(char *append) {
+    string val = p;
+    string app = append;
+    string after = val + app;
+    delete []p;
+    len = after.length() + 1;
+    p = new char[len + 1];
+    memset(p, 0, len + 1);
+    memcpy(p, (char*)after.c_str(), len);
 }
 
 void ValueEntry::AppendValue(int appendLen, char *append) {
@@ -123,6 +194,93 @@ void ValueEntry::erase() {
     
 }
 
+/**
+ * 加密values
+ */
+bool ValueEntry::Enc(char *password) {
+   
+
+    int encLen = ((this->len + 15) / 16 + 1) * 16;
+    char *encVals = new char[encLen];
+    int retEncLen;                                                              // 调试无误可以删除！！！！！
+    if( -1 == aes_encrypt_string(password, this->p, this->len, encVals, &retEncLen) ) {
+        cout << "加密失败!" << endl;
+    }      
+    if (encLen < retEncLen) {
+        cout << "密文长度错误!" << endl; 
+        return false;
+    }
+    SetValue(retEncLen, encVals);
+    delete []encVals;
+    return true;
+}
+/**
+ * 解密values
+ */
+bool ValueEntry::Dec(char *password) {
+    int decLen;
+    char *decVals = new char[this->len];
+    if (aes_decrypt_string(password, this->p, this->len, decVals, &decLen) == -1)
+    {
+        cout << "解密失败" << endl;
+        return false;
+    }
+    SetValue(decLen, decVals);
+    delete []decVals;
+    return true;
+}
+
+/**
+ * 在values后面添加random
+ */
+void ValueEntry::SpliceRandom(int pre = 0) {
+    int next = pre;
+    random_device rd;
+    mt19937 gen(rd());
+    uniform_int_distribution<> dis(0, RANDOM_MAX);
+
+    do {
+        next = dis(gen);
+    } while (pre == next);
+
+    char *nextStr = new char[RANDOM_MAX_LEN + 1];
+    memset(nextStr, 0, RANDOM_MAX_LEN + 1);
+    sprintf(nextStr, "$%d", next);
+    Append(nextStr);
+}
+/**
+ * 剔除values后面的random
+ */
+int ValueEntry::DivRandom() {
+    string valueEStr = this->p;
+    int end = valueEStr.find('$');
+    string substring = valueEStr.substr(0, end);
+    char *tempValue = copy_const_str(substring.c_str());
+    this->SetValue(strlen(tempValue) + 1, tempValue);
+    string randomStr = valueEStr.substr(end+1, valueEStr.length());
+    return atoi(randomStr.c_str());
+}
+
+vector<char*> ValueEntry::DivValue() {
+    vector<char*> values;
+    string valueEStr = this->p;
+    int star = 0;
+    int pre = -1;
+    int end = valueEStr.find(',');
+    while (end != string::npos) {
+        string substring = valueEStr.substr(star, end - star);
+        char *tempValue = copy_const_str(substring.c_str());
+        values.push_back(tempValue);
+        star = end + 1;
+        pre = end;
+        end = valueEStr.find(',', star);
+    }
+    string substring = valueEStr.substr(pre + 1, valueEStr.length());
+    char *tempValue = copy_const_str(substring.c_str());
+    values.push_back(tempValue);
+    return values;
+}
+
 int ValueEntry::getLen() const {
     return this->len;
 }
@@ -131,16 +289,16 @@ char *ValueEntry::getP() const {
 }
 
 ValueEntry& ValueEntry::operator=(ValueEntry &ve){
-        // 应该先判断是否有属性在堆区，如果有，需要先释放
-        if(len != 0) {
-            delete[] p;
-            p = nullptr;
-        }
-        // 深拷贝
-        len = ve.getLen();
-        p = new char[ve.getLen()];
-        memcpy(p, ve.getP(), len);
-        // 实现链式编程
-        return *this;
+    // 应该先判断是否有属性在堆区，如果有，需要先释放
+    if(len != 0) {
+        delete[] p;
+        p = nullptr;
     }
+    // 深拷贝
+    len = ve.getLen();
+    p = new char[ve.getLen()];
+    memcpy(p, ve.getP(), len);
+    // 实现链式编程
+    return *this;
+}
 #endif

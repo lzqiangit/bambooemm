@@ -650,23 +650,11 @@ public:
      * 注意：明文需要算上 \0 的长度啊 !
      */
     void Encrypt(char *password) {
-
         for (int i=0; i<getTagNum(); i++) {
-            ValueEntry *valueE = value_set[i];
-            if (valueE->getLen() == 0) {
-                continue;
+            ValueEntry *valueEP =  getValueP(i);
+            if (valueEP->getLen() != 0) {
+                valueEP->Enc(password);
             }
-            int encLen = ((valueE->getLen() + 15) / 16 + 1) * 16;
-            char *encVals = new char[encLen];
-            int retEncLen;                                                              // 调试无误可以删除！！！！！
-            if( -1 == aes_encrypt_string(password, valueE->getP(), valueE->getLen(), encVals, &retEncLen) ) {
-                cout << "加密失败!" << endl;
-            }      
-            if (encLen < retEncLen) {
-                cout << "密文长度错误!" << endl; 
-            }
-            valueE->SetValue(retEncLen, encVals);
-            delete []encVals;
         }
     }
 
@@ -685,5 +673,21 @@ public:
     ValueEntry getValue(int index) const {
         ValueEntry *valueP = value_set[index];
         return *valueP;
+    }
+
+    ValueEntry *getValueP(int index) const {
+        ValueEntry *valueP = value_set[index];
+        return valueP;
+    }
+    /**
+     * 用于初始化的时候添加随机尾数
+     */
+    void AddRandom() {
+        for (int i=0; i<getTagNum(); i++) {
+            ValueEntry *valueEP =  getValueP(i);
+            if (valueEP->getLen() != 0) {
+                valueEP->SpliceRandom();
+            }
+        }
     }
 };
