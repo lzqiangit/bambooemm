@@ -17,7 +17,7 @@ make
 ## 修改value的存储方案
 - [x] 冲突的value存储到同一个entry的value中
 ## 实现update
-- ~~ [ ] 实现带种子的哈希 ~~ (拼接法代替)
+~~ 实现带种子的哈希 ~~ (拼接法代替)
 - [ ] EMMu,st的数据结构定义    (每次只有一个value!)     -- EMMu的大小?? EMMu设置为哈希表，碰撞了咋整？
 - [ ] 实现更新函数 Clien::Update(key,op,value) - Server::Update(y, EMMu元素)
 ## 实现reinsert 
