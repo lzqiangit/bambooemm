@@ -276,10 +276,12 @@ void TestBasFunction() {
     int tempCounter, tempRandom;
 
 
-    for (int i = 0; i < 6; i++)
+    for (int i = 0; i < 16384; i++)
     { // 16384
         string key = "key_" + to_string(i);
         vector<ValueEntry> values = bemm->Query((char *)key.c_str());
+        cout << "################################################################################" << endl;
+        cout << key << ": " << endl;
         for (int j = 0; j < values.size(); j++)
         {
             ValueEntry value = values.at(j);
@@ -289,8 +291,9 @@ void TestBasFunction() {
             {
                 cout << key << "|" << j << endl;
             }
-            cout << dec << " # " << endl;
+            cout << dec << endl;
         }
+        
     }
 }
 

@@ -76,6 +76,9 @@ bool BambooEMM::Setup(int split_condition_param, int n, int l, char *password)
  */
 bool BambooEMM::SetupInsert(KV *kv)
 {
+    if (kv->value == 39410) {
+        cout << endl;
+    }
     uint32_t seg_index, bucket_index, tag;
 
     uint32_t hash_key = BOBHash::run(kv->key, strlen(kv->key), 3);
@@ -83,9 +86,9 @@ bool BambooEMM::SetupInsert(KV *kv)
     char *kvc = SpliceValue(kv);    // 现在kvc没有长度限制了!
     ValueEntry valueE;
     bool ret;
-    if (bf->Lookup(kv->key, valueE)) {
+    if (bf->Lookup(key_counter, valueE)) {
         // 找到了
-        ret = bf->SetupAppend(key_counter, kv->value);
+        ret = bf->SetupAppend(key_counter, kvc);
     } else {
         valueE.SetValue(strlen(kvc) + 1, kvc);
         ret = bf->Insert(key_counter, valueE);

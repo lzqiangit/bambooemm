@@ -10,6 +10,8 @@
 #include "utils.hpp"
 #include "ValueEntry.hpp"
 
+#include <stdlib.h>
+
 using namespace std;
 
 class Segment
@@ -194,9 +196,9 @@ private:
 
     void SetValue(uint32_t bucket_id, uint32_t chain_id, uint32_t tag_id, ValueEntry valueE)
     {
-        if (bucket_id == 25 && chain_id == 1 && tag_id == 0) {
-            cout << endl;
-        }
+        // if (bucket_id == 25 && chain_id == 1 && tag_id == 0) {
+        //     cout << endl;
+        // }
         ValueEntry *value_p = get_value(bucket_id, chain_id, tag_id);
         value_p->CpFrom(valueE);
     }
@@ -268,9 +270,42 @@ private:
     ValueEntry *LookupValueP(uint32_t cmp, int times, size_t chain_idx, uint32_t tag) const{
         vector<char*> ret;
         vector<int> tag_indexs = cmp_to_tag_id(cmp);
-        if (tag_indexs.size() != 1) {                               // 后面没问题再简化操作！！！！！！！！！！！！！！！！！！！！！！！！！！！！直接通过一部计算得到index
-            cout << "value 查询错误";
+        if (tag_indexs.size() > 2) {                               // 后面没问题再简化操作！！！！！！！！！！！！！！！！！！！！！！！！！！！！直接通过一部计算得到index
+            cout << "查询到两个相同的指纹存在于同一个查询路径上！！！ - 1" << endl;
+            exit(-1);
         }
+
+        if (tag_indexs.size() == 2) {
+            int bucket_id = 0, chain_id = 0, tag_id = 0;
+            for (int i=0; i<2; i++) {
+                int tag_index = tag_indexs[i];
+                tag_index += times * 16;
+                // 计算一个segment中
+                int a_chains_tag_num = chain_capacity * kTagsPerBucket;
+                if (tag_index < a_chains_tag_num)
+                {
+                    bucket_id ^= (int)chain_idx;
+                }
+                else
+                {
+                    tag_index -= a_chains_tag_num;
+                    bucket_id ^= AltIndex(chain_idx, tag);
+                }
+                chain_id ^= tag_index / kTagsPerBucket; // 一个桶中4个tag
+                tag_id ^= tag_index % kTagsPerBucket;
+                ValueEntry *valueE = get_value(bucket_id, chain_id, tag_id);
+                //cout << valueE->getP() << endl;
+            }
+            if (bucket_id != 0 || chain_id != 0 || tag_id != 0) {
+                cout << "查询到两个相同的指纹存在于同一个查询路径上！！！ - 2" << endl;
+                exit(-1);
+            }    
+        }
+
+        if (tag_indexs.size() == 0) {
+            return nullptr;
+        }
+
         int tag_index = tag_indexs[0];
         char *value = NULL;
 
@@ -618,16 +653,20 @@ public:
 
         for (int i=0; i<getTagNum(); i++) {
             ValueEntry *valueE = value_set[i];
-            int encLen = ((valueE->getLen() + 15) / 16) * 16;
+            if (valueE->getLen() == 0) {
+                continue;
+            }
+            int encLen = ((valueE->getLen() + 15) / 16 + 1) * 16;
             char *encVals = new char[encLen];
             int retEncLen;                                                              // 调试无误可以删除！！！！！
             if( -1 == aes_encrypt_string(password, valueE->getP(), valueE->getLen(), encVals, &retEncLen) ) {
                 cout << "加密失败!" << endl;
             }      
-            if (encLen != retEncLen) {
+            if (encLen < retEncLen) {
                 cout << "密文长度错误!" << endl; 
             }
-            valueE->SetValue(encLen, encVals);
+            valueE->SetValue(retEncLen, encVals);
+            delete []encVals;
         }
     }
 
