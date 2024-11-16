@@ -8,7 +8,7 @@
 
 #include "bamboofilter/predefine.h"
 #include "bamboofilter/segment.hpp"
-#include "common/BOBHash.h"
+#include "BOBHash.h"
 #include "filterposition.hpp"
 
 using std::vector;

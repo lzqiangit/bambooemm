@@ -3,7 +3,6 @@
 #include "utils.hpp"
 #include <vector>
 #include <cstring>
-#include "keyvaluetools.hpp"
 
 using namespace std;
 
@@ -318,36 +317,75 @@ void testValueEntryFunction() {
     }
 }
 
+void testEncryptAndUpload() {
+    int n, l;
+    vector<KV *> kvList = LoadKVList(n, l);
+    vector<int> volumnList = LoadVolumn();
+    Client *client = new Client();
+    cout << "初始化..." << endl;
+    client->SetupEMM(kvList, n, l);
 
-void testCP() {
+    cout << "初始化结束,准备查询!" << endl;
+    BambooEMM *bemm = client->getBEMM();
 
-    string **sarr = new string*[8];
-    for (int i=0; i<8; i++) {
-        sarr[i] = new string();
-        *sarr[i] = "hello-" + to_string(i);
-    }
-    cout << "================" << "*sarr" << endl;
-    for (int i=0; i<8; i++) {
-        cout << sarr[i] << "\t" << *(sarr[i]) << endl;
-    }
+    char *password = LoadKey();
+    int decLen;
+    int counter = 0;
+    char *tempKey, *tempValue;
+    int tempCounter, tempRandom;
 
-    string **sarr1 = new string*[16];
-    for (int i=0; i<2; i++) {
-        memcpy(sarr1 + i*8, sarr + i*4, 4 * sizeof(string*));
-        for (int j=0; j<4; j++) {
-            sarr1[i*8 + 4 + j] = new string("nice-" + to_string(j));
-        } 
-    }
-    
-    delete[] sarr;
-    cout << "========del========" << "*sarr1" << endl;
-    for (int i=0; i<16; i++) {
-        cout << sarr1[i] << "\t" << *(sarr1[i]) << endl;
+
+    ValueEntry value;
+    int random;
+    vector<char*> valList;
+    for (int i = 0; i < 10; i++)
+    { // 16384
+        string key = "key_" + to_string(i);
+        vector<ValueEntry> values = bemm->Query((char *)key.c_str());
+        cout << "######################################  BEFORE  ##########################################" << endl;
+        cout << key << ": " << endl;
+        for (int j = 0; j < values.size(); j++)
+        {
+            value = values.at(j);
+            value.Dec(LoadKey());
+            random = value.DivRandom();
+            valList = value.DivValue();
+            
+            for (char *val : valList) {
+                cout << val << "\t";
+            }
+            cout << random << endl;
+            cout << "------------------------------------------------------------------" << endl;
+            KV kv(valList[0]);
+            ValueEntry newValue;
+            newValue.SetValue(valList);
+            client->EncryptAndUpload(kv.QueryKey(), newValue, random);
+        }
+
+
+        values = bemm->Query((char *)key.c_str());
+        cout << "######################################## AFTER ########################################" << endl;
+        cout << key << ": " << endl;
+        for (int j = 0; j < values.size(); j++)
+        {
+            value = values.at(j);
+            value.Dec(LoadKey());
+            random = value.DivRandom();
+            valList = value.DivValue();
+            
+            for (char *val : valList) {
+                cout << val << "\t";
+            }
+            cout << random << endl;
+            cout << "------------------------------------------------------------------" << endl;
+        }
+
+        
     }
 }
 
 int main(int argc, char const *argv[])
 {
-    testValueEntryFunction();
+    testEncryptAndUpload();
     return 0;
 }

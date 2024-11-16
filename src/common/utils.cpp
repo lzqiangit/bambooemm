@@ -1,84 +1,4 @@
 #include "utils.hpp"
-#include <iostream>
-#include <string>
-#include <mysql/mysql.h>
-#include <algorithm>
-#include <string.h>
-#include <fstream>
-#include <sstream>  
-#include <string>  
-#include <stdexcept> 
-#include <bitset>  
-#include <openssl/aes.h>
-#include <openssl/rand.h>
-#include <openssl/evp.h> 
-using namespace std;
-
-vector<KV *> LoadKVList(int &n, int &l) {
-    MYSQL *con = NULL;
-    con = mysql_init(con);
-    if (con == NULL)
-    {
-        cout << "Init Connect ERROR" << endl;;
-    }
-    string url = "127.0.0.1";    
-    unsigned int Port = 3306;   
-    string User = "lzq";   
-    string PassWord = "0000";  
-    string DBName = "kvlist"; 
-    con = mysql_real_connect(con, url.c_str(), User.c_str(), PassWord.c_str(), DBName.c_str(), Port, NULL, 0);
-
-    if (con == NULL)
-    {
-        cout << "Connect Database Error" << endl;
-    }
-
-    mysql_query(con, "select * from random");
-
-    MYSQL_RES *res;
-    MYSQL_ROW row;
-    res = mysql_use_result(con);
-    const char * csname = "utf8";
-    mysql_set_character_set(con, csname);
-
-    int nums = 0;  
-    nums = mysql_num_fields(res);  
-
-    MYSQL_FIELD * fields;
-    vector<KV *> kvList;
-    n = 0;
-    l = 0;
-    int tempL = 0;
-    char *bkey = nullptr;
-    while( (row = mysql_fetch_row(res)) != nullptr)
-    {
-        ++n;
-        char *key = new char[(strlen(row[0]) + 1)];
-        char *value = new char[(strlen(row[1]) + 1)];
-        strcpy(key, row[0]);
-        strcpy(value, row[1]);
-
-        if(bkey == nullptr) {
-            bkey = key;
-        }
-
-        if ( strcmp(key, bkey) != 0 ) {
-            l = max(l, tempL);
-            tempL = 1;
-            bkey = key;
-        } else {
-            ++tempL;
-        }
-        
-
-
-        KV *kv = new KV(key, value, stoi(string(row[2])));
-        kvList.push_back(kv);
-    }
-    mysql_free_result(res);
-    mysql_close(con);
-    return kvList;
-}
 
 vector<int> LoadVolumn() {
     MYSQL *con = NULL;
@@ -402,4 +322,70 @@ clean:
         EVP_CIPHER_CTX_free(pDe_ctx);
 
     return ret;
+}
+
+vector<KV *> LoadKVList(int &n, int &l) {
+    MYSQL *con = NULL;
+    con = mysql_init(con);
+    if (con == NULL)
+    {
+        cout << "Init Connect ERROR" << endl;;
+    }
+    string url = "127.0.0.1";    
+    unsigned int Port = 3306;   
+    string User = "lzq";   
+    string PassWord = "0000";  
+    string DBName = "kvlist"; 
+    con = mysql_real_connect(con, url.c_str(), User.c_str(), PassWord.c_str(), DBName.c_str(), Port, NULL, 0);
+
+    if (con == NULL)
+    {
+        cout << "Connect Database Error" << endl;
+    }
+
+    mysql_query(con, "select * from random");
+
+    MYSQL_RES *res;
+    MYSQL_ROW row;
+    res = mysql_use_result(con);
+    const char * csname = "utf8";
+    mysql_set_character_set(con, csname);
+
+    int nums = 0;  
+    nums = mysql_num_fields(res);  
+
+    MYSQL_FIELD * fields;
+    vector<KV *> kvList;
+    n = 0;
+    l = 0;
+    int tempL = 0;
+    char *bkey = nullptr;
+    while( (row = mysql_fetch_row(res)) != nullptr)
+    {
+        ++n;
+        char *key = new char[(strlen(row[0]) + 1)];
+        char *value = new char[(strlen(row[1]) + 1)];
+        strcpy(key, row[0]);
+        strcpy(value, row[1]);
+
+        if(bkey == nullptr) {
+            bkey = key;
+        }
+
+        if ( strcmp(key, bkey) != 0 ) {
+            l = max(l, tempL);
+            tempL = 1;
+            bkey = key;
+        } else {
+            ++tempL;
+        }
+        
+
+
+        KV *kv = new KV(key, value, stoi(string(row[2])));
+        kvList.push_back(kv);
+    }
+    mysql_free_result(res);
+    mysql_close(con);
+    return kvList;
 }

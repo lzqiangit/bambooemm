@@ -5,6 +5,8 @@ typedef unsigned int uint32_t;
 #include <cstring>
 #include <string>
 #include "utils.hpp"
+#include <vector>
+#include <random>
 #define RANDOM_MAX 99999999
 #define RANDOM_MAX_LEN 9
 class ValueEntry

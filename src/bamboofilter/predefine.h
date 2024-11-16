@@ -25,4 +25,4 @@
 // op操作
 #define OP_INSERT 'I'
 #define OP_DELETE 'D'
-#define OP_UPDATE 'U'
+#define OP_EDIT 'E'

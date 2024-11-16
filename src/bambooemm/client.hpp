@@ -28,16 +28,21 @@ public:
     void MappingStep(vector<KV *> kvList, int l);
     BambooEMM *getBEMM();
     /**
-     * 传入需要加密上传的kv,修改value后的随机数,重新上传到filter并更新对应位置的value
+     * 此函数用于更新操作,再融合完成value完成后,给value添加随机数,加密后上传服务器更新valueEntry
+     * key 需要重写的key
+     * valueE 需要重写的未添加随机数且未加密状态的valueEntry
+     * preRandom 该value的前一个随机数 
      */
-    void ReEncrypt(vector<KV *> kvList, char *key = nullptr);
-
-    char *EncValue(char *kvcr);
+    void EncryptAndUpload(char *key, ValueEntry valueE, int preRandom);
 
     /**
-     * 删除
+     * 更新函数: 
+     * key: 需要更新的key <- hash(key)||counter
+     * counter
+     * op: 需要对 key[counter]执行的操作
+     * value: 操作后的值 insert,edit需要value而delete不需要
      */
-    void Update(char *key, uint32_t counter, char op, char *value);
+    void Update(char *key, uint32_t counter, char op, ValueEntry valueE);
 
 private:
     char *SpliceX(char *key, int st0);
@@ -46,6 +51,10 @@ private:
      * 拼接 操作对应的操作符和val
      */
     char *SpliceOpVal(char op, uint32_t counter, char *val); 
+
+    // 融合
+    //void Coalesce();
+
     
 };
 
@@ -126,72 +135,30 @@ BambooEMM *Client::getBEMM()
 
 /**
  * 查询获得了 : key || counter || value || random ——> hash(hash(key)||counter) -> new splic(value)
- * 客户端重新解析生成 KV，装入kvList
+ * 客户端重新解析生成 KV，装入valueEntry
  * 在做了必要的修改之后，将修改后的kvList传入此函数
  * 此函数会拼接 splic_key = hash(hash(key)||counter) 和 splic_val = splic(value),这里splic_val的random值会修改      // ? 在kv中存储random y
  * 然后通过splic_key的值作为key去组合value，传递给服务端bambooemm进行UpdateValue    // char* 转 string作为key，否则无法正常比较值，而是比较char*的指针地址
  */
-void Client::ReEncrypt(vector<KV *> kvList, char *keyA = nullptr)
+
+
+
+void Client::EncryptAndUpload(char *key, ValueEntry valueE, int preRandom)
 {
-    map<FilterPosition, vector<char *>> updateMap;          // 使用unordered_map减小开销，，
-    BambooFilter *bf = bemm->getEMM();
-    for (KV *kv : kvList)
-    {
-        bool flag = true;  // 是否未被记录
-        char *key = SpliceKey(BOBHash::run(kv->key, strlen(kv->key), 3), kv->counter);
-        char *kvc = SpliceValue(kv);
-        char *encKvcr = EncValue(kvc);
-
-        uint32_t seg_index, bucket_index, tag;
-
-        bf->GenerateIndexTagHash(key, seg_index, bucket_index, tag);
-
-        FilterPosition tempFP(seg_index, bucket_index, tag);
-        for (auto e : updateMap) {
-            if (tempFP == e.first) {
-                updateMap[e.first].push_back(encKvcr);
-                flag = false;
-                break;;
-            }
-        }
-        if (flag) {
-            vector<char*> tv;
-            tv.push_back(encKvcr);
-            updateMap.insert(pair<FilterPosition, vector<char *>>(tempFP, tv));        
-        }
-           //bemm->ReInsert(updateMap);
-    }
-}
-
-char *Client::EncValue(char *kvcr)
-{
-    char *enc_value = new char[BYTE_PER_VALUE];
-    int encLen = 0;
-
-    memset(enc_value, 0, BYTE_PER_VALUE);
-
-    int len = strlen(kvcr);
-    if (-1 == aes_encrypt_string(LoadKey(), kvcr, len, enc_value, &encLen))
-    {
-        cout << "加密失败!" << endl;
-    }
-    if (encLen != BYTE_PER_VALUE)
-    {
-        cout << "密文长度错误!" << endl;
-    }
-
-    return enc_value;
+    valueE.SpliceRandom(preRandom);
+    valueE.Enc(LoadKey());
+    bemm->ReInsert(key, valueE);
 }
 
 /**
- * 更新EMMst中的数据,调用服务端添的接口,向EMMu中添加一项数据
- * x <- hash(key||MMst[key][0], len, Ku);   // 用于计算EMMu中index的中间值
+ * 更新EMMst中的数据,调用服务端添的接口,向EMMu中更新 key||counter位置的值
+ * x <- hash(key||MMst[key][0], len, Ku);   // 用于计算EMMu中index的 中间值
  * y <- hash(MMst[kye][1]||x, len, Ku) % EMMu.length();     // EMMu的索引值
  * z <- Enc(Kenc, (op, counter,v));
  * EMMu[y] <- z
  * EMMst[label][1]++;
  */
-void Client::Update(char *key, uint32_t counter, char op, char *value) {
+void Client::Update(char *key, uint32_t counter, char op, ValueEntry valueE) {
     // 在st中找不到key,需要初始化
     if (EMMst->find(key) == EMMst->end()) {     
         (*EMMst)[key] = new uint32_t[2]{0, 0};
@@ -202,7 +169,7 @@ void Client::Update(char *key, uint32_t counter, char op, char *value) {
     char *spliceY = SpliceY((*EMMst)[key][1], x);
     uint32_t y = BOBHash::run(spliceY, strlen(spliceY), Ku);  // 这里直接按照char*处理???      // 这个哈希的种子只能是质数？？ 不用了
     // 获取y
-    char *opv = SpliceOpVal(op, counter, value);        // 长度？？？
+    char *opv = SpliceOpVal(op, counter, valueE.getP());        // 长度？？？
     // 加密
     char *encOpv = new char[32];
     int encLen;

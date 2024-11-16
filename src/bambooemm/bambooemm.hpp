@@ -6,7 +6,6 @@
 #include "utils.hpp"
 #include <iostream>
 #include <string>
-#include "keyvaluetools.hpp"
 #include <map>
 #include "filterposition.hpp"
 
@@ -79,21 +78,20 @@ bool BambooEMM::SetupInsert(KV *kv)
 
     uint32_t seg_index, bucket_index, tag;
 
-    uint32_t hash_key = BOBHash::run(kv->key, strlen(kv->key), 3);
-    char *key_counter = SpliceKey(hash_key, kv->counter);
-    char *kvc = SpliceValue(kv);    // 现在kvc没有长度限制了!
+    char *key_counter = kv->QueryKey();
+    char *kcv = kv->Splice();    // 现在kvc没有长度限制了!
     ValueEntry valueE;
     bool ret;
     if (bf->Lookup(key_counter, valueE)) {
         // 找到了
-        ret = bf->SetupAppend(key_counter, kvc);
+        ret = bf->SetupAppend(key_counter, kcv);
     } else {
-        valueE.SetValue(strlen(kvc) + 1, kvc);
+        valueE.SetValue(strlen(kcv) + 1, kcv);
         ret = bf->Insert(key_counter, valueE);
     }
      
     delete[] key_counter;
-    delete[] kvc;
+    delete[] kcv;
     return ret;
 }
 
@@ -101,10 +99,9 @@ vector<ValueEntry> BambooEMM::Query(const char *key)
 {
     vector<ValueEntry> ret;
     uint32_t seg_index, bucket_index, tag;
-    uint32_t hashKey = BOBHash::run(key, strlen(key), 3);
     for (int i = 0; i < max_volume; i++)
     {
-        char *hashKey_counter = SpliceKey(hashKey, i);
+        char *hashKey_counter = KV::MakeKey(key, i);
         ValueEntry valueE;
         bf->Lookup(hashKey_counter, valueE);
         ret.push_back(valueE);
@@ -117,9 +114,8 @@ bool BambooEMM::isExistKeyCounter(char *key, int counter)
 {
     vector<char *> ret;
     uint32_t seg_index, bucket_index, tag;
-    uint32_t hashKey = BOBHash::run(key, strlen(key), 3);
 
-    char *hashKey_counter = SpliceKey(hashKey, counter);
+    char *hashKey_counter = KV::MakeKey(key, counter);
     ValueEntry valueE;
     return bf->Lookup(hashKey_counter, valueE);
     

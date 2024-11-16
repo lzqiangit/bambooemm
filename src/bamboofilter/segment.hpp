@@ -3,8 +3,6 @@
 #include <stdlib.h>
 
 #include <iostream>
-
-#include "keyvaluetools.hpp"
 #include "bitsutil.h"
 #include "predefine.h"
 #include "utils.hpp"
@@ -238,24 +236,6 @@ private:
      */
     bool isEmptyValue(char *valueP) {
         return *((uint32_t*)valueP) == 0;
-    }
-
-    /**
-     * 判断valueP位置是否为填充值
-     * 注意：这个逻辑就不允许value为0了，否则会被直接填充
-     */
-    bool isPaddingValue(char *valueP) {
-        if (isEmptyValue(valueP)) {
-            return false;
-        }
-        bool ret = true;
-        char *key, *value;
-        int counter, random;
-        ResolveValue(valueP, key, counter, value, random);
-        ret = atoi(value) == 0;
-        delete []key;
-        delete []value;
-        return ret;
     }
 
 private:

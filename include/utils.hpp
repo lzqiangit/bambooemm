@@ -1,14 +1,27 @@
-#ifndef UTILS_H_
-#define UTILS_H_
+#ifndef _UTILS_H_
+#define _UTILS_H_
 
-#include <vector>
-#include "KV.hpp"
+
 #include <iostream>
 #include <cstring>
+#include <vector>
 #include <immintrin.h>
+#include <mysql/mysql.h>
+#include <algorithm>
+#include <string.h>
+#include <fstream>
+#include <sstream>  
+#include <string>  
+#include <stdexcept> 
+#include <bitset>  
+#include <openssl/aes.h>
+#include <openssl/rand.h>
+#include <openssl/evp.h> 
+#include "KV.hpp"
 using namespace std;
 
 
+using std::vector;
 
 #define AES_BLOCK_SIZE 16  //  
 #define AES_KEY_LENGTH 16
@@ -17,7 +30,7 @@ using namespace std;
 typedef unsigned int uint32_t;
 typedef unsigned long int uint64_t;
 
-vector<KV *> LoadKVList(int &n, int &l);
+
 /**
  * 
  */
@@ -38,5 +51,7 @@ char* copy_const_str(const char* cstr);
 
 int aes_encrypt_string(char *_pPassword, char *_pInput, int _InLen, char *_pOutBuf, int *_pOutLen);
 int aes_decrypt_string(char *_pPassword, char *_pInput, int _InLen, char *_pOutBuf, int *_pOutLen);
+
+vector<KV *> LoadKVList(int &n, int &l);
 
 #endif

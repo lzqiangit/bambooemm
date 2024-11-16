@@ -1,14 +1,13 @@
 
 #include <iostream>
 #include "utils.hpp"
-#include "keyvaluetools.hpp"
 
-// ¼ÓÃÜµÄÊ±ºòµ÷ÓÃ
-// aesÖÐµÄÃØÔ¿¸ñÊ½ AES_KEY
-// ·â×°¼ÓÃÜÊ±ºòÊ¹ÓÃµÄÃØÔ¿
+// ï¿½ï¿½ï¿½Üµï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½
+// aesï¿½Ðµï¿½ï¿½ï¿½Ô¿ï¿½ï¿½Ê½ AES_KEY
+// ï¿½ï¿½×°ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½Ê¹ï¿½Ãµï¿½ï¿½ï¿½Ô¿
 using namespace std;
 /**
- * ÕÒµ½Xor´úÂëÖÐµÄ¼ÓÃÜ·½·¨£¬È»ºó¼ÓÃÜ k -> ek ºóÆ´½Ó´æÈëBambooFilterÖÐ
+ * ï¿½Òµï¿½Xorï¿½ï¿½ï¿½ï¿½ï¿½ÐµÄ¼ï¿½ï¿½Ü·ï¿½ï¿½ï¿½ï¿½ï¿½È»ï¿½ï¿½ï¿½ï¿½ï¿½ k -> ek ï¿½ï¿½Æ´ï¿½Ó´ï¿½ï¿½ï¿½BambooFilterï¿½ï¿½
  */
 void test();
 char* join(char *key, char *value, int counter);
@@ -81,7 +80,7 @@ void test() {
     ret = aes_decrypt_string(key, enc, encLen, dec, &decLen);
     cout << "dec:" << dec << "|" << decLen + 1 << endl;
     /**
-     * ÃÜÎÄ³¤¶È×ÜÖ®»áÌî³äÖÁ16µÄÕûÊý±¶
+     * ï¿½ï¿½ï¿½Ä³ï¿½ï¿½ï¿½ï¿½ï¿½Ö®ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½16ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
      */
     cout << sizeof(char*) << endl;
 
