@@ -2,13 +2,8 @@
 #include <iostream>
 #include "utils.hpp"
 
-// ���ܵ�ʱ�����
-// aes�е���Կ��ʽ AES_KEY
-// ��װ����ʱ��ʹ�õ���Կ
 using namespace std;
-/**
- * �ҵ�Xor�����еļ��ܷ�����Ȼ����� k -> ek ��ƴ�Ӵ���BambooFilter��
- */
+
 void test();
 char* join(char *key, char *value, int counter);
 int main(int argc, char const *argv[])
@@ -79,9 +74,7 @@ void test() {
     int decLen;
     ret = aes_decrypt_string(key, enc, encLen, dec, &decLen);
     cout << "dec:" << dec << "|" << decLen + 1 << endl;
-    /**
-     * ���ĳ�����֮�������16��������
-     */
+
     cout << sizeof(char*) << endl;
 
 }

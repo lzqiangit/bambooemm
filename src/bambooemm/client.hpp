@@ -53,9 +53,7 @@ private:
     char *SpliceOpVal(char op, uint32_t counter, char *val); 
 
     // 融合
-    //void Coalesce();
-
-    
+    void Coalesce();    
 };
 
 Client::Client(/* args */)
@@ -188,7 +186,6 @@ void Client::Update(char *key, uint32_t counter, char op, ValueEntry valueE) {
 
     //cout << decOpv << endl;       # 函数返回报错 Seg fault!!!!!!
     // 上传服务器
-    
 }
 
 /**********************************************  Splice  *******************************************************************/
@@ -221,5 +218,9 @@ char *Client::SpliceOpVal(char op, uint32_t counter, char *val) {
     memset(ret, 0, splice.length() + 1);
     memcpy(ret, splice.c_str(), splice.length());
     return ret;
+}
+
+void Client::Coalesce() {
+
 }
 #endif

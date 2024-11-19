@@ -379,8 +379,6 @@ void testEncryptAndUpload() {
             cout << random << endl;
             cout << "------------------------------------------------------------------" << endl;
         }
-
-        
     }
 }
 

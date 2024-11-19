@@ -69,7 +69,7 @@ uint32_t BOBHash::run(const void* buf, uint32_t len, uint32_t primeNum) {
         str += 12;
         len -= 12;
     }
-
+ 
     /*------------------------------------- handle the last 11 bytes */
     c += len;
     switch (len) /* all the case statements fall through */

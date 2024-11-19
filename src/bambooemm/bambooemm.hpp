@@ -19,10 +19,12 @@ private:
     int max_volume, elem_num;
     char *password;
     bool isEnc = false;
+    ValueEntry **updata;    // EMMu
 
 public:
-    BambooEMM()
+    BambooEMM(uint32_t emmUSize)
     {
+        updata = new ValueEntry*[emmUSize];
     }
     ~BambooEMM()
     {
@@ -42,6 +44,10 @@ public:
      * 用于查询操作融合更新时, 重新对key对于的valueEntry复制
      */
     void ReInsert(char* key, ValueEntry valueE);
+    /**
+     * 用于上传更新
+     */
+    void AddUpdata();
 };
 
 bool BambooEMM::Setup(int split_condition_param, int n, int l, char *password)
@@ -148,6 +154,10 @@ void BambooEMM::ReInsert(char* key, ValueEntry valueE)
 {
 
     bf->UpdateValue(key, valueE);
+
+}
+
+void BambooEMM::AddUpdata() {
 
 }
 

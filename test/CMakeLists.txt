@@ -45,3 +45,8 @@ add_executable(emmu emmu.cpp)
 target_include_directories(emmu PUBLIC ${HEADPATH} ${OPENSSL_INCLUDE_DIR})
 target_link_libraries(emmu PUBLIC header utils hash ${OPENSSL_LIBRARIES})
 target_compile_options(emmu PUBLIC "-mavx2")
+
+add_executable(server server.cpp)
+target_include_directories(server PUBLIC ${HEADPATH} ${OPENSSL_INCLUDE_DIR})
+target_link_libraries(server PUBLIC header utils hash ${OPENSSL_LIBRARIES})
+target_compile_options(server PUBLIC "-mavx2")

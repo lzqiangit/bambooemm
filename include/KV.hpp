@@ -5,9 +5,11 @@
 #include "BOBHash.h"
 #include <string>
 #include <cstring>
+#include <vector>
 typedef unsigned int uint32_t;
 using std::string;
 using std::__cxx11::to_string;
+using std::vector;
 
 
 class KV
@@ -44,6 +46,10 @@ public:
         value = copy_const_str(spliceValueStr.substr(star, end - star).c_str());
     }
 
+    KV(const KV& others) {
+        // std::cout << "拷贝构造函数待实现！！！！！！！！！！！！！！！！！！！！！" << endl;
+    }
+
     char *Splice() {
         string keyStr = key;
         string valueStr = value;
@@ -64,6 +70,10 @@ public:
         return MakeKey(this->key, this->counter);
     }
 
+    /**
+     * 通过key和counter获取用于查询的关键字 
+     * key <- hash(k)||c
+     */
     static char *MakeKey(const char *k, int c) {
         uint32_t hash_key = BOBHash::run(k, strlen(k), 3);
         
@@ -75,6 +85,16 @@ public:
         memset(retCStr, 0, len + 1);
         memcpy(retCStr, (char *)keyCounterStr.c_str(), len);
         return retCStr;
+    }
+    /**
+     * 从key||counter||val的字符串列表中导入kv的列表
+     */
+    static vector<KV*> LoadKVList(vector<char*> kvStrList) {
+        vector<KV*> ret;
+        for (char * kvStr : kvStrList) {
+            ret.push_back(new KV(kvStr));
+        }
+        return ret;
     }
 
 private:

@@ -11,7 +11,7 @@ typedef unsigned int uint32_t;
 #define RANDOM_MAX_LEN 9
 class ValueEntry
 {
-private:
+protected:
     int len;
     char *p;
 public:
@@ -169,7 +169,7 @@ void ValueEntry::CpFrom(ValueEntry ve) {
 void ValueEntry::Append(char *append) {
     string val = p;
     string app = append;
-    string after = val + app;
+    string after = val + "," + app;
     delete []p;
     len = after.length() + 1;
     p = new char[len + 1];
