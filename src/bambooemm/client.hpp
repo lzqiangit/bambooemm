@@ -10,6 +10,9 @@
 #include <string>
 #include <sstream>
 
+#define ST_COALESCE_TIMES 0
+#define ST_SUBMIT_TIMES 1
+
 class Client
 {
 private:
@@ -44,16 +47,17 @@ public:
      */
     void Update(char *key, uint32_t counter, char op, ValueEntry valueE);
 
+    vector<ValueEntry> Query(const char *key);
+
 private:
-    char *SpliceX(char *key, int st0);
-    char *SpliceY(uint32_t emm1, uint32_t x);
+    uint32_t GetXHash(char *key);
     /**
      * 拼接 操作对应的操作符和val
      */
     char *SpliceOpVal(char op, uint32_t counter, char *val); 
-
+public:
     // 融合
-    void Coalesce();    
+    vector<ValueEntry> Coalesce(char *key, vector<ValueEntry> old);    
 };
 
 Client::Client(/* args */)
@@ -161,52 +165,33 @@ void Client::Update(char *key, uint32_t counter, char op, ValueEntry valueE) {
     if (EMMst->find(key) == EMMst->end()) {     
         (*EMMst)[key] = new uint32_t[2]{0, 0};
     }
-    char *spliceX = SpliceX(key, (*EMMst)[key][0]);
-    uint32_t x = BOBHash::run(spliceX, strlen(spliceX), Ku);
+    uint32_t x = GetXHash(key);
     // Question ！！！！！
-    char *spliceY = SpliceY((*EMMst)[key][1], x);
-    uint32_t y = BOBHash::run(spliceY, strlen(spliceY), Ku);  // 这里直接按照char*处理???      // 这个哈希的种子只能是质数？？ 不用了
+    uint32_t y = GetYHash(x, (*EMMst)[key][1]);
     // 获取y
-    char *opv = SpliceOpVal(op, counter, valueE.getP());        // 长度？？？
-    // 加密
-    char *encOpv = new char[32];
-    int encLen;
-    aes_encrypt_string(LoadKey(), opv, strlen(opv) + 1, encOpv, &encLen); 
-    char *decOpv = new char[32];
-    int decLen;
-    aes_decrypt_string(LoadKey(), encOpv, encLen, decOpv, &decLen);
+    UpdataEntry updataE(valueE, op);
+    
+    updataE.SpliceRandom();
+    updataE.Enc(LoadKey());
 
-    char *dec = new char[decLen + 1];
-    memset(dec, 0, decLen + 1);
-    memcpy(dec, decOpv, decLen);
-
-    delete []opv;
-    delete []encOpv;
-    delete []decOpv;
-
-    //cout << decOpv << endl;       # 函数返回报错 Seg fault!!!!!!
+    ++(*EMMst)[key][ST_SUBMIT_TIMES];
     // 上传服务器
+    bemm->AddUpdata(y, updataE);
+}
+
+vector<ValueEntry> Client::Query(const char *key) {
+    return bemm->Query(key);
 }
 
 /**********************************************  Splice  *******************************************************************/
-char *Client::SpliceX(char *key, int st0) {
+uint32_t Client::GetXHash(char *key) {
     string keyStr = key;
-    string st0Str = to_string(st0);
+    string st0Str = to_string( (*EMMst)[key][ST_COALESCE_TIMES] );
     string xStr = keyStr + "|" + st0Str; 
     char *ret = new char[xStr.length() + 1];
     memset(ret, 0, xStr.length() + 1);
     memcpy(ret, (char*)xStr.c_str(), xStr.length());
-    return ret;
-}
-
-char *Client::SpliceY(uint32_t emm1, uint32_t x) {
-    string emm1Str = to_string(emm1);
-    string xStr = to_string(x);
-    string splice = emm1Str + "|" + xStr;
-    char *ret = new char[splice.length() + 1];
-    memset(ret, 0, splice.length() + 1);
-    memcpy(ret, (char*)splice.c_str(), splice.length());
-    return ret;
+    return BOBHash::run(ret, strlen(ret), 3);
 }
 
 char *Client::SpliceOpVal(char op, uint32_t counter, char *val) {
@@ -220,7 +205,19 @@ char *Client::SpliceOpVal(char op, uint32_t counter, char *val) {
     return ret;
 }
 
-void Client::Coalesce() {
+vector<ValueEntry> Client::Coalesce(char *key, vector<ValueEntry> old) {
+    vector<ValueEntry> ret;
+    uint32_t x = GetXHash(key);
+    uint32_t cnt = (*EMMst)[key][ST_SUBMIT_TIMES];
+    if (cnt == 0) {
+        cout << "不用更新, 这个判断后续移动到Search函数中!" << endl;
+    } 
+    vector<UpdataEntry> ues = bemm->GetUpdataList(x, cnt);
 
+    for (UpdataEntry ue : ues) {
+        ue.Dec(LoadKey());
+        cout << ue.getP() << endl;
+    }
+    return ret;
 }
 #endif

@@ -101,7 +101,6 @@ ValueEntry::ValueEntry(const ValueEntry& other) {
         p = new char[len];
         memcpy(p, other.getP(), len);
     }
-    
 }
 
 ValueEntry::~ValueEntry()
@@ -113,7 +112,7 @@ ValueEntry::~ValueEntry()
 }
 
 void ValueEntry::SetValue(int len, char *p) {
-    if (len != 0) {
+    if (this->len != 0) {
         delete[] this->p;
     }
     this->len = len;

@@ -389,3 +389,14 @@ vector<KV *> LoadKVList(int &n, int &l) {
     mysql_close(con);
     return kvList;
 }
+
+
+uint32_t GetYHash(uint32_t x, uint32_t st1) {
+    string st1Str = to_string(st1);
+    string xStr = to_string(x);
+    string splice = xStr + "|" + st1Str;
+    char *ret = new char[splice.length() + 1];
+    memset(ret, 0, splice.length() + 1);
+    memcpy(ret, (char*)splice.c_str(), splice.length());
+    return BOBHash::run(ret, splice.length() + 1, 3);
+}

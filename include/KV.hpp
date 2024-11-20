@@ -47,7 +47,15 @@ public:
     }
 
     KV(const KV& others) {
-        // std::cout << "拷贝构造函数待实现！！！！！！！！！！！！！！！！！！！！！" << endl;
+        char *keyo = others.key;
+        char *valueo = others.value;
+        this->key = new char[ strlen(keyo) + 1 ];
+        this->value = new char[ strlen(valueo) + 1 ];
+        memset(this->key, 0, strlen(keyo) + 1);
+        memset(this->value, 0, strlen(valueo) + 1);
+        memcpy(this->key, keyo, strlen(keyo));
+        memcpy(this->value, valueo, strlen(valueo));
+        this->counter = others.counter;
     }
 
     char *Splice() {

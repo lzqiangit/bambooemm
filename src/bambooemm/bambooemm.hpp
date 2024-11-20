@@ -8,6 +8,11 @@
 #include <string>
 #include <map>
 #include "filterposition.hpp"
+#include "UpdataEntry.hpp"
+#include <vector>
+
+#define DEFAULT_EMMU_SIZE 4096
+
 
 class BambooEMM
 {
@@ -19,15 +24,39 @@ private:
     int max_volume, elem_num;
     char *password;
     bool isEnc = false;
-    ValueEntry **updata;    // EMMu
+    UpdataEntry **updata;    // EMMu
+    uint32_t emmUSize;
 
 public:
+    BambooEMM()
+    {
+        this->emmUSize = DEFAULT_EMMU_SIZE;
+        updata = new UpdataEntry*[DEFAULT_EMMU_SIZE];
+        for (int i=0; i<emmUSize; i++) {
+            updata[i] = nullptr;
+        }
+    }
     BambooEMM(uint32_t emmUSize)
     {
-        updata = new ValueEntry*[emmUSize];
+        this->emmUSize = emmUSize;
+        updata = new UpdataEntry*[emmUSize];
+        for (int i=0; i<emmUSize; i++) {
+            updata[i] = nullptr;
+        }
     }
+
     ~BambooEMM()
     {
+        delete[] value;
+        delete[] bf;
+        delete[] KI;
+        delete[] password;
+        for (int i=0; i<emmUSize; i++) {
+            if (updata[i] != nullptr) {
+                delete updata[i];
+            }
+        }
+        delete[] updata;
     }
 
     bool Setup(int split_condition_param, int n, int l, char *password);
@@ -47,7 +76,9 @@ public:
     /**
      * 用于上传更新
      */
-    void AddUpdata();
+    void AddUpdata(uint32_t y, UpdataEntry ue);
+
+    vector<UpdataEntry> GetUpdataList(uint32_t x, int cnt);
 };
 
 bool BambooEMM::Setup(int split_condition_param, int n, int l, char *password)
@@ -152,13 +183,27 @@ void BambooEMM::AddRandomAndEncrypt(char *password)
  */
 void BambooEMM::ReInsert(char* key, ValueEntry valueE)
 {
-
     bf->UpdateValue(key, valueE);
-
 }
 
-void BambooEMM::AddUpdata() {
+void BambooEMM::AddUpdata(uint32_t y, UpdataEntry ue) {
+    uint32_t pos = y % emmUSize;
+    if (updata[pos] != nullptr) {
+        cout << "EMMu哈希碰撞!!";
+        exit(-1);
+    }
+    updata[pos] = new UpdataEntry(ue);
+}
 
+vector<UpdataEntry> BambooEMM::GetUpdataList(uint32_t x, int cnt) {
+    vector<UpdataEntry> ret;
+    int pos;
+    for (int i=0; i<cnt; i++) {
+        uint32_t y = GetYHash(x, i);
+        pos = y % emmUSize;
+        ret.push_back( *(updata[pos]) );
+    }
+    return ret;
 }
 
 #endif

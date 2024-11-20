@@ -54,4 +54,7 @@ int aes_decrypt_string(char *_pPassword, char *_pInput, int _InLen, char *_pOutB
 
 vector<KV *> LoadKVList(int &n, int &l);
 
+/** 通过x和st[label][1]计算y,用于定位元素在EMMu中的位置 */
+uint32_t GetYHash(uint32_t x, uint32_t st1); 
+
 #endif

@@ -1,3 +1,5 @@
+#ifndef _UPDATA_ENTRY_
+#define _UPDATA_ENTRY_
 #include "ValueEntry.hpp"
 
 /**
@@ -17,7 +19,9 @@ public:
     };
     UpdataEntry(const UpdataEntry& other) : ValueEntry(other) {}
 
-    ~UpdataEntry();
+    ~UpdataEntry() {
+        
+    }
 
     /**
      * 设置values值
@@ -101,12 +105,4 @@ public:
     }
 
 };
-
-UpdataEntry::UpdataEntry(/* args */)
-{
-
-}
-
-UpdataEntry::~UpdataEntry()
-{
-}
+#endif
