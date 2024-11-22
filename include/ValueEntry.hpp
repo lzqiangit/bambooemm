@@ -22,12 +22,14 @@ public:
      */
     ValueEntry(int len, char *p);
     ValueEntry(const ValueEntry& other);
+    ValueEntry(vector<KV> kvs);
     ~ValueEntry();
 
     /**
      * 设置values值
      */
     void SetValue(int len, char *p);
+    void SetValue(char* key, int counter, char* value);
     /**
      * 通过value数组设置valueEntry中的value值
      */
@@ -89,6 +91,7 @@ ValueEntry::ValueEntry()
 
 ValueEntry::ValueEntry(int len, char*p) 
 {   
+    this->len = 0;
     SetValue(len, p);
 }
 
@@ -100,6 +103,14 @@ ValueEntry::ValueEntry(const ValueEntry& other) {
     if (len != 0) {
         p = new char[len];
         memcpy(p, other.getP(), len);
+    }
+}
+
+ValueEntry::ValueEntry(vector<KV> kvs) {
+    this->len = 0;
+    for (KV kv : kvs) {
+        char *kcv = kv.Splice();
+        this->Append(kcv);
     }
 }
 
@@ -119,6 +130,20 @@ void ValueEntry::SetValue(int len, char *p) {
     this->p = new char[len];
     memset(this->p, 0, len);
     memcpy(this->p, p, len);
+}
+
+/**
+ * 将value设置为 key|counter|value
+ */
+void ValueEntry::SetValue(char* key, int counter, char* value) {
+    if (this->len > 0) {
+        delete[] this->p;
+        this->len = 0;
+    }
+    KV kv(key, value, counter);
+    char *kcv = kv.Splice();
+    this->p = kcv;
+    this->len = strlen(kcv) + 1;
 }
 
 void ValueEntry::SetValue(vector<char*> values) {
@@ -164,11 +189,13 @@ void ValueEntry::CpFrom(ValueEntry ve) {
     memset(this->p, 0, this->len);
     memcpy(this->p, ve.getP(), this->len);
 }
-
+/**
+ * 在value后拼接字符串
+ */
 void ValueEntry::Append(char *append) {
     string val = p;
     string app = append;
-    string after = val + "," + app;
+    string after = val + app;
     delete []p;
     len = after.length() + 1;
     p = new char[len + 1];

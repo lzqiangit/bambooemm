@@ -359,7 +359,7 @@ void testEncryptAndUpload() {
             KV kv(valList[0]);
             ValueEntry newValue;
             newValue.SetValue(valList);
-            client->EncryptAndUpload(kv.QueryKey(), newValue, random);
+            client->EncryptAndUpload(kv.key, kv.counter,newValue, random);
         }
 
 

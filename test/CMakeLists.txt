@@ -50,3 +50,8 @@ add_executable(server server.cpp)
 target_include_directories(server PUBLIC ${HEADPATH} ${OPENSSL_INCLUDE_DIR})
 target_link_libraries(server PUBLIC header utils hash ${OPENSSL_LIBRARIES})
 target_compile_options(server PUBLIC "-mavx2")
+
+add_executable(demo demo.cpp)
+target_include_directories(demo PUBLIC ${HEADPATH} ${OPENSSL_INCLUDE_DIR})
+target_link_libraries(demo PUBLIC header utils hash ${OPENSSL_LIBRARIES})
+target_compile_options(demo PUBLIC "-mavx2")

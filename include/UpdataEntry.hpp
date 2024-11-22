@@ -10,7 +10,7 @@ class UpdataEntry : public ValueEntry
 private:
     /* data */
 public:
-    UpdataEntry(/* args */);
+    UpdataEntry(/* args */) {}
     UpdataEntry(int len, char *p, char op) {
         SetValue(len, p, op);
     }
@@ -67,7 +67,7 @@ public:
     /**
      * 切割并返回valueEntry中存储的各个value,Div前需要剔除random！！！
      */
-    vector<char*> DivValue() {
+    char* DivValue() {
 
         // 暂时调整指针位置
         ++this->p;
@@ -75,11 +75,16 @@ public:
 
         // 调用父函数,获取返回值
         vector<char*> ret = ValueEntry::DivValue();
+        
+        if (ret.size() != 1) {
+            cout << "分割UpdataValue出错!";
+            exit(0);
+        }
 
         --this->p;
         ++this->len; 
 
-        return ret;
+        return ret[0];
     }
 
     /**
@@ -102,6 +107,10 @@ public:
 
     void CpFrom(ValueEntry ve, char op) {
         SetValue(ve.getLen(), ve.getP(), op);
+    }
+
+    char DivOP() {
+        return this->p[0];
     }
 
 };

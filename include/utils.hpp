@@ -18,6 +18,7 @@
 #include <openssl/rand.h>
 #include <openssl/evp.h> 
 #include "KV.hpp"
+#include "BOBHash.h"
 using namespace std;
 
 

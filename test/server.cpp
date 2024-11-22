@@ -24,12 +24,9 @@ void testUpdataEntry()
     cout << ue.getLen() << "\t" << ue.getP() << endl;
 
     ue.DivRandom();
-    vector<char *> valueList = ue.DivValue();
+    char* valueList = ue.DivValue();
 
-    for (char *val : valueList)
-    {
-        cout << val << "\t";
-    }
+    cout << valueList << "\t";
 
     cout << endl;
 }
@@ -45,7 +42,7 @@ void testUplodAndGet() {
     cout << "初始化结束,准备查询!" << endl;
     BambooEMM *bemm = client->getBEMM();
 
-    string updataValue = "key_u|uuu|uuu";
+    string updataValue = "key_u|0|uuu";
     char *password = LoadKey();
     vector<ValueEntry> vel;
 
@@ -55,14 +52,10 @@ void testUplodAndGet() {
     for (int i = 0; i < 10; i++)
     { // 16384
         string key = "key_" + to_string(i);
-        client->Update((char*)key.c_str(), 0, OP_DELETE, ve);
-        client->Coalesce((char*)key.c_str(), vel);
+        client->Update((char*)key.c_str(), 0, OP_DELETE, ve);        
+        client->Query((char*)key.c_str());
     }
-
-
-    
 }
-
 
 int main(int argc, char const *argv[])
 {

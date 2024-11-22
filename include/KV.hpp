@@ -6,6 +6,7 @@
 #include <string>
 #include <cstring>
 #include <vector>
+
 typedef unsigned int uint32_t;
 using std::string;
 using std::__cxx11::to_string;
@@ -18,10 +19,25 @@ public:
     char *key;
     char *value;
     int counter;
-    KV(char *key, char *value, int counter) : key(key),
-                                              value(value),
-                                              counter(counter)
+
+    KV(char *key, int counter) {
+        this->key = new char[strlen(key) + 1];
+        memset(this->key, 0, strlen(key) + 1);
+        memcpy(this->key, key, strlen(key));
+
+        this->value = nullptr;
+        BePadding();
+    }
+
+    KV(char *key, char *value, int counter) :counter(counter)
     {
+        this->key = new char[strlen(key) + 1];
+        memset(this->key, 0, strlen(key) + 1);
+        memcpy(this->key, key, strlen(key));
+
+        this->value = new char[strlen(value) + 1];
+        memset(this->value, 0, strlen(value) + 1);
+        memcpy(this->value, value, strlen(value));
     }
     ~KV()
     {
@@ -58,6 +74,28 @@ public:
         this->counter = others.counter;
     }
 
+    KV& operator=(const KV& others) {
+        if (this->key != nullptr) {
+            delete []this->key;
+        }
+        if (this->value != nullptr) {
+            delete []this->value;
+        }
+        char *keyo = others.key;
+        char *valueo = others.value;
+        this->key = new char[ strlen(keyo) + 1 ];
+        this->value = new char[ strlen(valueo) + 1 ];
+        memset(this->key, 0, strlen(keyo) + 1);
+        memset(this->value, 0, strlen(valueo) + 1);
+        memcpy(this->key, keyo, strlen(keyo));
+        memcpy(this->value, valueo, strlen(valueo));
+        this->counter = others.counter;
+        return *this;
+    }
+
+    /**
+     * 获取kcv的拼接 key|counter|value
+     */
     char *Splice() {
         string keyStr = key;
         string valueStr = value;
@@ -79,6 +117,30 @@ public:
     }
 
     /**
+     * 设置为填充值
+     */
+    void BePadding() {
+        if (this->value != nullptr)    delete[] this->value;
+        this->value = new char[2];
+        memset(this->value, 0, 2);
+        sprintf(this->value, "P");
+    }
+
+    bool isPadding() {
+        return (strlen(this->value) == 1 && this->value[0] == 'P'); 
+    }
+
+    void setValue(char *newValue) {
+        int newLen = strlen(newValue);
+        if (this->value != nullptr) {
+            delete[] this->value;
+        }
+        this->value = new char[newLen + 1];
+        memset(this->value, 0, newLen + 1);
+        memcpy(this->value, newValue, newLen);
+    }
+
+    /**
      * 通过key和counter获取用于查询的关键字 
      * key <- hash(k)||c
      */
@@ -97,10 +159,11 @@ public:
     /**
      * 从key||counter||val的字符串列表中导入kv的列表
      */
-    static vector<KV*> LoadKVList(vector<char*> kvStrList) {
-        vector<KV*> ret;
+    static vector<KV> LoadKVList(vector<char*> kvStrList) {
+        vector<KV> ret;
         for (char * kvStr : kvStrList) {
-            ret.push_back(new KV(kvStr));
+            KV kv(kvStr);
+            ret.push_back(kv);
         }
         return ret;
     }
