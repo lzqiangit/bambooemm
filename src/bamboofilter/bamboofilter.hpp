@@ -226,7 +226,7 @@ bool BambooFilter::SetupAppend(const char *key, char *appendValue) {
     if (valueEP == nullptr) {
         return false;
     } 
-    valueEP->AppendValue(strlen(appendValue), appendValue);
+    valueEP->AppendValue(appendValue);
     return true;
 }
 

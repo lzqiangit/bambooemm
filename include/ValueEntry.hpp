@@ -15,7 +15,7 @@ protected:
     int len;
     char *p;
 public:
-    ValueEntry(/* args */);
+    ValueEntry(/* args */); 
     /**
      * len长度应该包含'\0' 如果需要的话
      * 参数p注意释放
@@ -55,7 +55,7 @@ public:
      * appendLen 拼接value的长度
      * append 指向拼接value值的指针
      */
-    void AppendValue(int appendLen, char *append);
+    void AppendValue(char *append);
 
     void erase();
 
@@ -110,7 +110,7 @@ ValueEntry::ValueEntry(vector<KV> kvs) {
     this->len = 0;
     for (KV kv : kvs) {
         char *kcv = kv.Splice();
-        this->Append(kcv);
+        this->AppendValue(kcv);
     }
 }
 
@@ -193,24 +193,40 @@ void ValueEntry::CpFrom(ValueEntry ve) {
  * 在value后拼接字符串
  */
 void ValueEntry::Append(char *append) {
-    string val = p;
-    string app = append;
-    string after = val + app;
-    delete []p;
-    len = after.length() + 1;
+    string after;
+    if (this->len > 0) {
+        string val = p;
+        string app = append;
+        after = val + app;
+    } else {
+        after = append;
+    }
+    
+    if (this->len > 0) {
+        delete []p;
+    }
+    len = after.length();
     p = new char[len + 1];
     memset(p, 0, len + 1);
     memcpy(p, (char*)after.c_str(), len);
 }
 
-void ValueEntry::AppendValue(int appendLen, char *append) {
-    
-    string val = p;
-    string app = append;
-    string after = val + "," + app;
-    delete []p;
-    len = after.length() + 1;
-    p = new char[len];
+void ValueEntry::AppendValue(char *append) {
+
+    string after;
+    if (this->len > 0) {
+        string val = p;
+        string app = append;
+        after = val + "," + app;
+    } else {
+        after = append;
+    }
+    if (this->len > 0) {
+        delete []p;
+    }
+    len = after.length();
+    p = new char[len + 1];
+    memset(p, 0, len + 1);
     memcpy(p, (char*)after.c_str(), len);
 }
 

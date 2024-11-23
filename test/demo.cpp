@@ -5,11 +5,14 @@
 #include "client.hpp"
 using namespace std;
 
-ValueEntry TEMP_VALUE(20 ,"key_temp|0|val_temp");
+#define PADDING_COUNTER 0
+#define PADDING_VALUE "P"
 
 void showMenu() {
+    cout << "=================================================================" << endl;
     cout << "查询:S\t" << "插入:I\t" << "删除:D\t" << "修改:E\t" << endl;
     cout << "清屏:C\t" << "退出:X\t" <<endl;  
+    cout << "=================================================================" << endl;
 }
 
 char* InputCStr(string name) {
@@ -22,6 +25,14 @@ char* InputCStr(string name) {
     memcpy(valCStr, (char*)val.c_str(), len);
     return valCStr;
 }
+
+string InputStr(string name) {
+    string val;
+    cout << name + ":";
+    cin >> val;
+    return val;
+}
+
 
 int InputNum(string name) {
     int num;
@@ -53,43 +64,45 @@ int main(int argc, char const *argv[])
     cout << "初始化完成!!!" << endl;
 
     char comm;
-    char *key;
     int counter;
-    char *value;
+    string keyStr;
+    string valStr;
+    KV *kcv;
     ValueEntry valE;
     while (true) {
-        key = nullptr;
-        value = nullptr;
-        cout << "$ ";
+        kcv = nullptr;
+
+        cout << "BEMM$ ";
         cin >> comm;
         switch (comm)
         {
         case 'S':
         case 's':
-            key = InputCStr("key");
-            ShowKVList(client->Query(key));
+            keyStr = InputStr("key");
+
+            ShowKVList(client->Query((char*)keyStr.c_str()));
             break;
         case 'I':
         case 'i':
-            key = InputCStr("key");
-            counter = InputNum("counter");
-            value = InputCStr("value");
-            valE.SetValue(key, counter, value);
-            client->Update(key, counter, OP_INSERT, valE);
+            keyStr = InputStr("key");
+            valStr = InputStr("value");
+            kcv = new KV(keyStr, PADDING_COUNTER, valStr);
+            client->Update((char*)keyStr.c_str() , OP_INSERT, *kcv);
             break;
         case 'D':
         case 'd':
-            key = InputCStr("key");
+            keyStr = InputStr("key");
             counter = InputNum("counter");
-            client->Update(key, counter, OP_DELETE, TEMP_VALUE);
+            kcv = new KV(keyStr, counter, PADDING_VALUE);
+            client->Update((char*)keyStr.c_str(), OP_DELETE, *kcv);
             break;
         case 'E':
         case 'e':
-            key = InputCStr("key");
+            keyStr = InputStr("key");
             counter = InputNum("counter");
-            value = InputCStr("value");
-            valE.SetValue(key, counter, value);
-            client->Update(key, counter, OP_DELETE, valE);
+            valStr = InputStr("value");
+            kcv = new KV((char*)keyStr.c_str(), counter, valStr);
+            client->Update((char*)keyStr.c_str(), OP_EDIT, *kcv);
             break;
         case 'C':
         case 'c':
@@ -105,8 +118,7 @@ int main(int argc, char const *argv[])
             showMenu();
             break;
         }
-
-        if (key != nullptr)    delete[] key;
+        if (kcv != nullptr) delete kcv;
     }
 
     return 0;

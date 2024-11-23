@@ -20,16 +20,28 @@ public:
     char *value;
     int counter;
 
+    KV(string keyStr, int counter, string valStr) {
+        this->counter = counter;
+        int keyLen = keyStr.length();
+        int valLen = valStr.length();
+        key = new char[keyLen + 1];
+        value = new char[valLen + 1];
+        memset(key, 0, keyLen + 1);
+        memset(value, 0, valLen + 1);
+        memcpy(key, (char*)keyStr.c_str(), keyLen);
+        memcpy(value, (char*)valStr.c_str(), valLen + 1);
+    }
+
     KV(char *key, int counter) {
         this->key = new char[strlen(key) + 1];
         memset(this->key, 0, strlen(key) + 1);
         memcpy(this->key, key, strlen(key));
-
+        this->counter = counter;
         this->value = nullptr;
         BePadding();
     }
 
-    KV(char *key, char *value, int counter) :counter(counter)
+    KV(char *key, char *value, int counter)
     {
         this->key = new char[strlen(key) + 1];
         memset(this->key, 0, strlen(key) + 1);
@@ -38,6 +50,7 @@ public:
         this->value = new char[strlen(value) + 1];
         memset(this->value, 0, strlen(value) + 1);
         memcpy(this->value, value, strlen(value));
+        this->counter = counter;
     }
     ~KV()
     {

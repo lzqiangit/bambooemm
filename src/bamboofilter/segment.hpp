@@ -203,7 +203,7 @@ private:
 
     void AppendValue(uint32_t bucket_id, uint32_t chain_id, uint32_t tag_id, ValueEntry valueE) {
         ValueEntry *value_p = get_value(bucket_id, chain_id, tag_id);
-        value_p->AppendValue(valueE.getLen(), valueE.getP());
+        value_p->AppendValue(valueE.getP());
     }
 
     /**

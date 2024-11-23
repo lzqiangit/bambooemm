@@ -202,6 +202,8 @@ vector<UpdataEntry> BambooEMM::GetUpdataList(uint32_t x, int cnt) {
         uint32_t y = GetYHash(x, i);
         pos = y % emmUSize;
         ret.push_back( *(updata[pos]) );
+        // 查找后就清空
+        delete updata[pos];
     }
     return ret;
 }

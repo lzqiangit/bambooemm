@@ -47,7 +47,7 @@ public:
      * op: 需要对 key[counter]执行的操作
      * value: 操作后的值 insert,edit需要value而delete不需要
      */
-    void Update(char *key, uint32_t counter, char op, ValueEntry valueE);
+    void Update(char *key, char op, KV kcv);
 
     vector<KV> Query(const char *key);
 
@@ -165,7 +165,7 @@ void Client::EncryptAndUpload(const char *key, int counter, ValueEntry valueE, i
  * EMMu[y] <- z
  * EMMst[label][1]++;
  */
-void Client::Update(char *key, uint32_t counter, char op, ValueEntry valueE) {
+void Client::Update(char *key, char op, KV kcv) {
     // 在st中找不到key,需要初始化
     if (EMMst->find(key) == EMMst->end()) {     
         (*EMMst)[key] = new uint32_t[2]{0, 0};
@@ -174,6 +174,8 @@ void Client::Update(char *key, uint32_t counter, char op, ValueEntry valueE) {
     // Question ！！！！！
     uint32_t y = GetYHash(x, (*EMMst)[key][1]);
     // 获取y
+    ValueEntry valueE;
+    valueE.SetValue(kcv.key, kcv.counter, kcv.value);
     UpdataEntry updataE(valueE, op);
     
     updataE.SpliceRandom();
@@ -182,6 +184,7 @@ void Client::Update(char *key, uint32_t counter, char op, ValueEntry valueE) {
 
     ++(*EMMst)[key][ST_SUBMIT_TIMES];
     // 上传服务器
+    // 注意记录counter
     bemm->AddUpdata(y, updataE);
 }
 
@@ -200,6 +203,8 @@ vector<KV> Client::Query(const char *key) {
     if (cnt > 0) {
         // 融合更新, 并解析结果
         resolueQuery = Coalesce(key, cnt, queryList);
+        (*EMMst)[key][ST_SUBMIT_TIMES] = 0;
+        (*EMMst)[key][ST_COALESCE_TIMES]++;
     } else {
         for (int i=0; i<queryList.size(); i++) {
             ValueEntry ve = queryList.at(i);
@@ -284,8 +289,6 @@ vector< vector<KV> > Client::Coalesce(const char *key, int cnt, vector<ValueEntr
         char op = updata.DivOP();
 
         int upCounter = updataKv.counter;
-        pair<int, int> pos = map[upCounter];
-        KV aimKv = resolueQuery.at(pos.first).at(pos.second);   // 需要修改的
 
         pair<int, int> prePos, aftPos, finalPos;
         int minIndex;
