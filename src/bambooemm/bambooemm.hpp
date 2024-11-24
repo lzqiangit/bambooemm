@@ -92,22 +92,6 @@ bool BambooEMM::Setup(int split_condition_param, int n, int l, char *password)
 }
 
 /**
- * 用于测试?
- */
-// bool BambooEMM::LoadMM(vector<KV *> mm)
-// {
-//     for (KV *kv : mm)
-//     {
-//         uint32_t id = get_value_id(kv->value);
-//         delete kv->value;
-//         kv->value = new char[BYTE_PER_VALUE];
-//         memcpy(kv->value, &id, BYTE_PER_VALUE);
-//         SetupInsert(kv);
-//     }
-//     return true;
-// }
-
-/**
  * 用于初始化时调用, 此时为明文状态
  */
 bool BambooEMM::SetupInsert(KV *kv)

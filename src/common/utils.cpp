@@ -2,7 +2,7 @@
 
 vector<int> LoadVolumn() {
     MYSQL *con = NULL;
-    con = mysql_init(con);//��ʼ��
+    con = mysql_init(con);
     if (con == NULL)
     {
         cout << "Init Connect ERROR" << endl;;
@@ -398,5 +398,6 @@ uint32_t GetYHash(uint32_t x, uint32_t st1) {
     char *ret = new char[splice.length() + 1];
     memset(ret, 0, splice.length() + 1);
     memcpy(ret, (char*)splice.c_str(), splice.length());
-    return BOBHash::run(ret, splice.length() + 1, 3);
+    uint32_t retU32 = BOBHash::run(ret, splice.length() + 1, 3);
+    return retU32;
 }

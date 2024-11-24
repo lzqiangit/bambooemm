@@ -258,6 +258,7 @@ vector< vector<KV> > Client::Coalesce(const char *key, int cnt, vector<ValueEntr
     int queryLen = queryVEL.size();
     int *preRandom = new int[queryLen];
     int notEmptyNum = 0;     // 非空元素个数
+    vector<int> deledIndexs;     // 用于记录删除的元素索引,用于支持一次融合多次更新
 
     unordered_map<int, pair<int, int> > map;    // counter -> (ValueEntry_index, value_index)
     vector< vector<KV> > resolueQuery;      // 用于存储解析的查询结果, 并在其上进行更新操作, 
@@ -288,13 +289,22 @@ vector< vector<KV> > Client::Coalesce(const char *key, int cnt, vector<ValueEntr
         KV updataKv(value);                                     // 更新后的值
         char op = updata.DivOP();
 
-        int upCounter = updataKv.counter;
+        int upCounter = updataKv.counter;           // 操作的counter
+        int preDeledNum = 0;
+        // 调整因删除产生的偏移
+        for (int deled : deledIndexs) {
+            if (deled <upCounter) {
+                preDeledNum++;
+            }
+        }
+        upCounter -= preDeledNum;
 
         pair<int, int> prePos, aftPos, finalPos;
         int minIndex;
         switch (op)
         {
         case OP_DELETE:
+            
             // 类似顺序表, 依次将前面元素的counter减一,并向前挪动一位
             for (int i=upCounter; i<notEmptyNum-1; i++) {
                 // 找到元素
@@ -308,7 +318,7 @@ vector< vector<KV> > Client::Coalesce(const char *key, int cnt, vector<ValueEntr
             finalPos = map[notEmptyNum-1];       
             resolueQuery[finalPos.first][finalPos.second].BePadding();  // 将最后一个非填充值修改为填充值
             notEmptyNum--;      // 需要融合多个操作的时候, 需要考虑非空值的变化
-                                // 需要修改map吗?
+            deledIndexs.push_back(upCounter + preDeledNum);       // 实际的push值需要是融合前的
             // 其他的填充值不用变动! 结束!
             break;
         case OP_EDIT:       // EDIT要求这个值之前必须要已经存在的
@@ -339,6 +349,7 @@ vector< vector<KV> > Client::Coalesce(const char *key, int cnt, vector<ValueEntr
                 // 修改map
                 map[notEmptyNum] = {minIndex, resolueQuery[minIndex].size() - 1};
             }
+            notEmptyNum++;
             break;
         default:
             cout << "ERROR OP!";

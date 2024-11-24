@@ -17,7 +17,7 @@ void showMenu() {
 
 char* InputCStr(string name) {
     string val;
-    cout << name + ":";
+    //cout << name + ": ";
     cin >> val;
     int len = val.length();
     char *valCStr = new char[len + 1];
@@ -28,7 +28,7 @@ char* InputCStr(string name) {
 
 string InputStr(string name) {
     string val;
-    cout << name + ":";
+    //cout << name + ": ";
     cin >> val;
     return val;
 }
@@ -36,12 +36,13 @@ string InputStr(string name) {
 
 int InputNum(string name) {
     int num;
-    cout << name + ":";
+    //cout << name + ":";
     cin >> num;
     return num;
 }
 
 void ShowKVList(vector<KV> kvs) {
+    cout << endl;
     cout << "=================================================================" << endl;
     cout << "KEY" << "\t" << "COUNTER" << "\t" << "VALUE" << endl;
     cout << "-----------------------------------------------------------------" << endl;
@@ -49,6 +50,7 @@ void ShowKVList(vector<KV> kvs) {
         cout << kv.key << "\t" << kv.counter << "\t" << kv.value << endl;
     }
     cout << "=================================================================" << endl;
+    cout << endl;
 }
 
 int main(int argc, char const *argv[])
@@ -69,6 +71,8 @@ int main(int argc, char const *argv[])
     string valStr;
     KV *kcv;
     ValueEntry valE;
+
+    showMenu();
     while (true) {
         kcv = nullptr;
 
@@ -79,7 +83,6 @@ int main(int argc, char const *argv[])
         case 'S':
         case 's':
             keyStr = InputStr("key");
-
             ShowKVList(client->Query((char*)keyStr.c_str()));
             break;
         case 'I':
@@ -112,6 +115,10 @@ int main(int argc, char const *argv[])
         case 'x':
             delete client;
             exit(0);
+            break;
+        case 'M':
+        case 'm':
+            showMenu();
             break;
         default:
             cout << "命令错误" << endl;

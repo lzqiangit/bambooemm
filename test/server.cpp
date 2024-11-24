@@ -52,7 +52,7 @@ void testUplodAndGet() {
     for (int i = 0; i < 10; i++)
     { // 16384
         string key = "key_" + to_string(i);
-        client->Update((char*)key.c_str(), 0, OP_DELETE, ve);        
+        //client->Update((char*)key.c_str(), OP_DELETE, ve);        
         client->Query((char*)key.c_str());
     }
 }
