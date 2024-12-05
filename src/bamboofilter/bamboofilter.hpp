@@ -138,12 +138,6 @@ bool BambooFilter::Insert(const char *key, ValueEntry valueE)
 
 bool BambooFilter::Lookup(const char *key, ValueEntry &valueE)
 {
-    // cout << "Key: " << key << endl;
-    // string cp = "key_70";
-    // if ( strcmp((char*)key, (char*)cp.c_str()) == 0 ) {
-    //     cout << endl;
-    // }
-    
     uint32_t seg_index, bucket_index, tag;
 
     GenerateIndexTagHash(key, seg_index, bucket_index, tag);

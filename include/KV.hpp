@@ -32,6 +32,9 @@ public:
         memcpy(value, (char*)valStr.c_str(), valLen + 1);
     }
 
+    /**
+     * 构建一个填充KV
+     */
     KV(char *key, int counter) {
         this->key = new char[strlen(key) + 1];
         memset(this->key, 0, strlen(key) + 1);
@@ -126,7 +129,7 @@ public:
      * 获取其向服务端发送查询请求所需的key <- hash(key)|counter
      */
     char *QueryKey() {
-        return MakeKey(this->key, this->counter);
+        return MakeSearchKey(MakeHashKey(this->key), this->counter);
     }
 
     /**
@@ -154,15 +157,23 @@ public:
     }
 
     /**
-     * 通过key和counter获取用于查询的关键字 
+     * 求key的哈希值
+     */
+    static string MakeHashKey(const char *key) {
+
+        uint32_t hash_key = BOBHash::run(key, strlen(key), 3);
+        string keyStr = to_string(hash_key);
+        return keyStr;
+    }
+    /** 
+     * 传入哈希后的key和counter,输出两者的拼接
+     * 配合 KV::MakeHashKey 生成key的哈希值string
      * key <- hash(k)||c
      */
-    static char *MakeKey(const char *k, int c) {
-        uint32_t hash_key = BOBHash::run(k, strlen(k), 3);
+    static char *MakeSearchKey(string hashKey, int c) {
         
-        string keyStr = to_string(hash_key);
         string counterStr = to_string(c);
-        string keyCounterStr = keyStr + "|" + counterStr;
+        string keyCounterStr = hashKey + "|" + counterStr;
         int len = keyCounterStr.length();
         char *retCStr = new char[len + 1];
         memset(retCStr, 0, len + 1);

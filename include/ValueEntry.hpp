@@ -30,6 +30,7 @@ public:
      */
     void SetValue(int len, char *p);
     void SetValue(char* key, int counter, char* value);
+    void SetValue(KV kv);
     /**
      * 通过value数组设置valueEntry中的value值
      */
@@ -112,6 +113,12 @@ ValueEntry::ValueEntry(vector<KV> kvs) {
         char *kcv = kv.Splice();
         this->AppendValue(kcv);
     }
+}
+
+void ValueEntry::SetValue(KV kv) {
+    this->len = 0;
+    char *kcv = kv.Splice();
+    this->AppendValue(kcv);
 }
 
 ValueEntry::~ValueEntry()

@@ -306,8 +306,7 @@ private:
         chain_id = tag_index / kTagsPerBucket; // 一个桶中4个tag
         tag_id = tag_index % kTagsPerBucket;
         ValueEntry *valueE = get_value(bucket_id, chain_id, tag_id);
-        return valueE;
-        
+        return valueE;  
     }
 
     /**
@@ -475,13 +474,6 @@ public:
                     ValueEntry *vp =  new ValueEntry();
                     new_value_set[i*new_valueset_len+old_valueset_len+p] = vp;
                 }
-
-                // for (int j=0; j<4; j++) {
-                //     cout << value_set[i * old_valueset_len + j] << "\t" << new_value_set[i*new_valueset_len+j] << endl;
-                // }
-                // for (int j=0; j<4; j++) {
-                //     cout << new_value_set[i*new_valueset_len+old_valueset_len+j] << endl;
-                // }
             }
             delete[] old_data_base;
             delete[] value_set;

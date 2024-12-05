@@ -148,13 +148,20 @@ BambooEMM *Client::getBEMM()
 
 /**
  * 将value添加随机数,并更新服务器中key对应位置的值,
+ * 为了防止新添加新key可能导致的出现不存在的指纹的问题
  */
 void Client::EncryptAndUpload(const char *key, int counter, ValueEntry valueE, int preRandom)
 {
-    char *hashKey = KV::MakeKey(key, counter);
+    char *searchKey = KV::MakeSearchKey(KV::MakeHashKey(key), counter);
     valueE.SpliceRandom(preRandom);
     valueE.Enc(LoadKey());
-    bemm->ReInsert(hashKey, valueE);
+    string hashKey = KV::MakeHashKey(key);
+    if (bemm->isExistKeyCounter(hashKey, counter)) {
+        bemm->ReInsert(searchKey, valueE);
+    } else {
+        bemm->Insert(KV::MakeHashKey(key), counter, valueE);
+    }
+    
 }
 
 /**
@@ -190,12 +197,27 @@ void Client::Update(char *key, char op, KV kcv) {
 
 vector<KV> Client::Query(const char *key) {
 
-    vector<ValueEntry> queryList = bemm->Query(key);
+    string hashKey = KV::MakeHashKey(key);
+    vector<ValueEntry> queryList = bemm->Query(hashKey);
     vector< vector<KV> > resolueQuery;
-    // 解密
+
+    // 
+    int tempCounter = 0;
     for (ValueEntry &query : queryList) {   // 使用引用才能真正实现queryList中元素的解密
-        query.Dec(LoadKey());
-    }
+        if (query.getLen() > 0) {
+            query.Dec(LoadKey());
+        } else {
+            // 判断是否存在长度为0的valueE,如果有,那么就说明这个key是一个新的key,需要将这些valueE中填充值
+            // 如果这个key是一个新值,但是其搜索出来的valueE中均有值,那么就不用为这个新key进行特殊的处理
+            // 注意融合中,新的key和非新的key的区别在于,新的key的空value是不存在的
+            KV newPaddingKV((char*)key, tempCounter);
+            query.SetValue(newPaddingKV);
+            query.SpliceRandom();       // 需要统一格式,添加随机数
+        }
+        tempCounter++;
+    }    
+
+
     uint32_t cnt = 0;
     if ( EMMst->find(key) != EMMst->end() ) {
         cnt = (*EMMst)[key][ST_SUBMIT_TIMES];

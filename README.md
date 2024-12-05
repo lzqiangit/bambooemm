@@ -7,7 +7,7 @@ cd build
 cmake ..
 cd test
 make
-./example
+./demo
 ```
 
 
@@ -15,8 +15,9 @@ make
 初始化和插入时,将所有的key均按照存在最大容量个数的value填充至emm,对于value不存在(key|counter),value处填充enc(key|counter|0) 
 ## 待办
 ##### 处理特殊情况
-- [ ] 插入新的key的时候的逻辑
-- [ ] l变化时的逻辑
+- [ ] l变大的逻辑
+- [ ] l变小的逻辑
+- [x] 插入新的key的时候的逻辑
 
 ##### 修复bug
 - [x] KV构造函数修改为深拷贝方式, 传入的指针需要手动在类外释放, 需要修改！！！

@@ -62,17 +62,24 @@ public:
     bool Setup(int split_condition_param, int n, int l, char *password);
     //bool LoadMM(vector<KV *> mm);
     bool SetupInsert(KV *kv);
+
+    
     /**
      * query前是否需要加密？
      */
-    vector<ValueEntry> Query(const char *key);
-    bool isExistKeyCounter(char *key, int counter);
+    vector<ValueEntry> Query(string hashKey);
+    bool isExistKeyCounter(string hashKey, int counter);
     BambooFilter *getEMM();
     void AddRandomAndEncrypt(char *password);
     /**
      * 用于查询操作融合更新时, 重新对key对于的valueEntry复制
      */
     void ReInsert(char* key, ValueEntry valueE);
+    /**
+     * 用于更新操作中插入新的key的值
+     * 注意: 传入的valueE需要提前加密
+     */
+    bool Insert(string hashKey, int counter, ValueEntry valueE);
     /**
      * 用于上传更新
      */
@@ -116,13 +123,16 @@ bool BambooEMM::SetupInsert(KV *kv)
     return ret;
 }
 
-vector<ValueEntry> BambooEMM::Query(const char *key)
+/**
+ * 传入哈希后的key,返回该key的l给valueEntry
+ */
+vector<ValueEntry> BambooEMM::Query(string hashKey)
 {
     vector<ValueEntry> ret;
     uint32_t seg_index, bucket_index, tag;
     for (int i = 0; i < max_volume; i++)
     {
-        char *hashKey_counter = KV::MakeKey(key, i);
+        char *hashKey_counter = KV::MakeSearchKey(hashKey, i);            // 这个逻辑移动至Client中!!!
         ValueEntry valueE;
         bf->Lookup(hashKey_counter, valueE);
         ret.push_back(valueE);
@@ -130,13 +140,15 @@ vector<ValueEntry> BambooEMM::Query(const char *key)
     }
     return ret;
 }
-
-bool BambooEMM::isExistKeyCounter(char *key, int counter)
+/**
+ * 传入hashKey
+ */
+bool BambooEMM::isExistKeyCounter(string hashKey, int counter)
 {
     vector<char *> ret;
     uint32_t seg_index, bucket_index, tag;
 
-    char *hashKey_counter = KV::MakeKey(key, counter);
+    char *hashKey_counter = KV::MakeSearchKey(hashKey, counter);
     ValueEntry valueE;
     return bf->Lookup(hashKey_counter, valueE);
     
@@ -168,6 +180,10 @@ void BambooEMM::AddRandomAndEncrypt(char *password)
 void BambooEMM::ReInsert(char* key, ValueEntry valueE)
 {
     bf->UpdateValue(key, valueE);
+}
+
+bool BambooEMM::Insert(string hashKey, int counter, ValueEntry valueE) {
+    return bf->Insert(KV::MakeSearchKey(hashKey, counter), valueE);
 }
 
 void BambooEMM::AddUpdata(uint32_t y, UpdataEntry ue) {
