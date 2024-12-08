@@ -19,10 +19,9 @@
 #include <openssl/evp.h> 
 #include "KV.hpp"
 #include "BOBHash.h"
+#include <ctime>
+
 using namespace std;
-
-
-using std::vector;
 
 #define AES_BLOCK_SIZE 16  //  
 #define AES_KEY_LENGTH 16
@@ -57,5 +56,8 @@ vector<KV *> LoadKVList(int &n, int &l);
 
 /** 通过x和st[label][1]计算y,用于定位元素在EMMu中的位置 */
 uint32_t GetYHash(uint32_t x, uint32_t st1); 
+
+// 获取时间戳
+uint64_t getTimestamp();
 
 #endif

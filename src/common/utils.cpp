@@ -401,3 +401,8 @@ uint32_t GetYHash(uint32_t x, uint32_t st1) {
     uint32_t retU32 = BOBHash::run(ret, splice.length() + 1, 3);
     return retU32;
 }
+
+uint64_t getTimestamp() {
+    time_t now = time(nullptr);
+    return static_cast<uint64_t>(now) * 1000;
+}

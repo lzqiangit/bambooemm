@@ -86,6 +86,8 @@ public:
     void AddUpdata(uint32_t y, UpdataEntry ue);
 
     vector<UpdataEntry> GetUpdataList(uint32_t x, int cnt);
+
+    void ChangeMaxVolumn(int new_max_volume);
 };
 
 bool BambooEMM::Setup(int split_condition_param, int n, int l, char *password)
@@ -208,4 +210,7 @@ vector<UpdataEntry> BambooEMM::GetUpdataList(uint32_t x, int cnt) {
     return ret;
 }
 
+void BambooEMM::ChangeMaxVolumn(int new_max_volume) {
+    this->max_volume = new_max_volume;
+}
 #endif

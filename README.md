@@ -45,3 +45,4 @@ ValueEntry中:
 - 同一个value的不同部分通过 '|' 拼接
 - 不同value通过 ',' 拼接为values
 - values同random通过 '$' 拼接 
+- 填充标志 P

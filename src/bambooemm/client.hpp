@@ -22,7 +22,13 @@ private:
     int n;
     BambooEMM *bemm;
     uint32_t K, Ku;   // 种子
-    unordered_map<string, uint32_t*>  *EMMst;
+    unordered_map<string, uint64_t*>  *EMMst;
+    /**
+     * 变大 -> 没啥问题 
+     * 变小 -> 需要考虑到第l号value位的值是否需要挪动到前面来 
+     * vector中存储bemm中这个key目前是按多少容量存储的, 太大了吧?
+     */
+    vector<int> v;
 
 
 public:
@@ -48,7 +54,10 @@ public:
      * value: 操作后的值 insert,edit需要value而delete不需要
      */
     void Update(char *key, char op, KV kcv);
-
+    
+    /**
+     * 查询
+     */
     vector<KV> Query(const char *key);
 
 private:
@@ -64,7 +73,7 @@ public:
 
 Client::Client(/* args */)
 {
-    EMMst = new unordered_map<string, uint32_t*>();
+    EMMst = new unordered_map<string, uint64_t*>();
     K = 3;
     Ku = 3;
 }
@@ -117,7 +126,7 @@ void Client::PaddingStep(vector<KV *> kvList, int l)
         for (int i = counter; i < l; i++)
         {
             KV *kv = new KV(key, ++counter);
-            if (!(this->bemm->isExistKeyCounter(kv->key, kv->counter)))
+            if (!(this->bemm->isExistKeyCounter(KV::MakeHashKey(key), kv->counter)))
             {
                 this->bemm->SetupInsert(kv);
             }
@@ -161,7 +170,6 @@ void Client::EncryptAndUpload(const char *key, int counter, ValueEntry valueE, i
     } else {
         bemm->Insert(KV::MakeHashKey(key), counter, valueE);
     }
-    
 }
 
 /**
@@ -175,7 +183,7 @@ void Client::EncryptAndUpload(const char *key, int counter, ValueEntry valueE, i
 void Client::Update(char *key, char op, KV kcv) {
     // 在st中找不到key,需要初始化
     if (EMMst->find(key) == EMMst->end()) {     
-        (*EMMst)[key] = new uint32_t[2]{0, 0};
+        (*EMMst)[key] = new uint64_t[2]{getTimestamp(), 0};
     }
     uint32_t x = GetXHash(key);
     // Question ！！！！！
@@ -226,7 +234,7 @@ vector<KV> Client::Query(const char *key) {
         // 融合更新, 并解析结果
         resolueQuery = Coalesce(key, cnt, queryList);
         (*EMMst)[key][ST_SUBMIT_TIMES] = 0;
-        (*EMMst)[key][ST_COALESCE_TIMES]++;
+        (*EMMst)[key][ST_COALESCE_TIMES] = getTimestamp();
     } else {
         for (int i=0; i<queryList.size(); i++) {
             ValueEntry ve = queryList.at(i);
@@ -387,4 +395,4 @@ vector< vector<KV> > Client::Coalesce(const char *key, int cnt, vector<ValueEntr
 
     return resolueQuery;
 }
-#endif
+#endif 

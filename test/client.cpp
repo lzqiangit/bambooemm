@@ -3,7 +3,7 @@
 #include "utils.hpp"
 #include <vector>
 #include <cstring>
-
+#include <unistd.h>
 using namespace std;
 
 /*
@@ -382,8 +382,14 @@ void testEncryptAndUpload() {
     }
 }
 
+void testGetTimeStamp() {
+    for (int i=0; i<10; i++) {
+        cout << getTimestamp() << endl;
+        usleep(100000);
+    }
+}
 int main(int argc, char const *argv[])
 {
-    testEncryptAndUpload();
+    testGetTimeStamp();
     return 0;
 }
