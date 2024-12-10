@@ -21,7 +21,7 @@ private:
     BambooFilter *bf;
     unsigned char *KI;
     char *value;
-    int max_volume, elem_num;
+    uint32_t max_volume, elem_num;
     char *password;
     bool isEnc = false;
     UpdataEntry **updata;    // EMMu
@@ -59,7 +59,7 @@ public:
         delete[] updata;
     }
 
-    bool Setup(int split_condition_param, int n, int l, char *password);
+    bool Setup(int split_condition_param, int n, uint32_t l, char *password);
     //bool LoadMM(vector<KV *> mm);
     bool SetupInsert(KV *kv);
 
@@ -87,10 +87,13 @@ public:
 
     vector<UpdataEntry> GetUpdataList(uint32_t x, int cnt);
 
-    void ChangeMaxVolumn(int new_max_volume);
+    void ChangeMaxVolume(int new_max_volume);
+
+    uint32_t getMaxVolume();
+    void setMaxVolume(uint32_t newVolume);
 };
 
-bool BambooEMM::Setup(int split_condition_param, int n, int l, char *password)
+bool BambooEMM::Setup(int split_condition_param, int n, uint32_t l, char *password)
 {
     this->password = password;
     // uint64_t volumn = n > 8192 ? n : 8192;
@@ -210,7 +213,15 @@ vector<UpdataEntry> BambooEMM::GetUpdataList(uint32_t x, int cnt) {
     return ret;
 }
 
-void BambooEMM::ChangeMaxVolumn(int new_max_volume) {
+void BambooEMM::ChangeMaxVolume(int new_max_volume) {
     this->max_volume = new_max_volume;
+}
+
+uint32_t BambooEMM::getMaxVolume() {
+    return this->max_volume;
+}
+
+void BambooEMM::setMaxVolume(uint32_t newVolume) {
+    this->max_volume = newVolume;
 }
 #endif

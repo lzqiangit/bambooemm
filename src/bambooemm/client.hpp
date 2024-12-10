@@ -13,6 +13,7 @@
 
 #define ST_COALESCE_TIMES 0
 #define ST_SUBMIT_TIMES 1
+#define ST_MAX_VOLUME 2   
 using std::pair;
 
 class Client
@@ -22,15 +23,17 @@ private:
     int n;
     BambooEMM *bemm;
     uint32_t K, Ku;   // 种子
-    unordered_map<string, uint64_t*>  *EMMst;
+    unordered_map<string, uint32_t*>  *EMMst;       // 分别存储
     /**
-     * 变大 -> 没啥问题 
+     * 变大 -> 没啥问题
      * 变小 -> 需要考虑到第l号value位的值是否需要挪动到前面来 
      * vector中存储bemm中这个key目前是按多少容量存储的, 太大了吧?
      */
-    vector<int> v;
+    uint32_t *volumeNumArr;    // 存储某一容量的key的数量  第0号位置存储数组大小
 
-
+    uint32_t getVolumeNumArrLength();
+    void setVolumeNumArrLength(uint32_t length);
+    void ExpandVNArr();     // 扩展
 public:
     Client(/* args */);
     ~Client();
@@ -73,13 +76,37 @@ public:
 
 Client::Client(/* args */)
 {
-    EMMst = new unordered_map<string, uint64_t*>();
+    EMMst = new unordered_map<string, uint32_t*>();
     K = 3;
     Ku = 3;
 }
 
 Client::~Client()
 {
+}
+
+uint32_t Client::getVolumeNumArrLength() {
+    return volumeNumArr[0];
+}
+
+void Client::setVolumeNumArrLength(uint32_t length) {
+    volumeNumArr[0] = length;
+}
+
+void Client::ExpandVNArr() {
+    // 
+    int oldLen = getVolumeNumArrLength();
+    int newLen = oldLen * 1.5;
+    uint32_t *newVNA = new uint32_t[newLen];
+    // 初始化
+    memset(newVNA, 0, sizeof(uint32_t) * newLen);
+    // 拷贝
+    memcpy(newVNA, volumeNumArr, sizeof(uint32_t) * oldLen);
+    // 删除
+    delete []volumeNumArr;
+    volumeNumArr = newVNA;
+    // 重新设置容量大小
+    setVolumeNumArrLength(newLen);
 }
 
 /**
@@ -92,17 +119,26 @@ void Client::SetupEMM(vector<KV *> kvList, int n, int l)
     this->bemm = new BambooEMM();
     this->bemm->Setup(2, MIN_STAR_CAP, l, LoadKey());           // LoadKey应该作为函数参数传入好一些!!!
     char *tempKey = kvList.at(0)->key;
+     // 初始化volumeNum
+    int volumeNumSize = l * 1.5;
+    volumeNumArr = new uint32_t[volumeNumSize];
+    for (int i=0; i<volumeNumSize; i++) {
+        volumeNumArr[i] = 0;
+    }
+    setVolumeNumArrLength(volumeNumSize);
     for (int i = 0; i < kvList.size(); i++)
     {
         this->bemm->SetupInsert(kvList.at(i)); // counter必须从0开始而且连续 yes
         if (i == kvList.size() - 1)
         {
             maxCounterKVList.push_back(kvList.at(i));
+            ++volumeNumArr[kvList.at(i)->counter + 1];
             continue;
         }
         if (strcmp(tempKey, kvList.at(i + 1)->key) != 0)
         {
             maxCounterKVList.push_back(kvList.at(i));
+            ++volumeNumArr[kvList.at(i)->counter + 1];
             tempKey = kvList.at(i + 1)->key;
         }
     }
@@ -183,7 +219,7 @@ void Client::EncryptAndUpload(const char *key, int counter, ValueEntry valueE, i
 void Client::Update(char *key, char op, KV kcv) {
     // 在st中找不到key,需要初始化
     if (EMMst->find(key) == EMMst->end()) {     
-        (*EMMst)[key] = new uint64_t[2]{getTimestamp(), 0};
+        (*EMMst)[key] = new uint32_t[3]{0, 0, bemm->getMaxVolume()};
     }
     uint32_t x = GetXHash(key);
     // Question ！！！！！
@@ -234,7 +270,8 @@ vector<KV> Client::Query(const char *key) {
         // 融合更新, 并解析结果
         resolueQuery = Coalesce(key, cnt, queryList);
         (*EMMst)[key][ST_SUBMIT_TIMES] = 0;
-        (*EMMst)[key][ST_COALESCE_TIMES] = getTimestamp();
+        (*EMMst)[key][ST_COALESCE_TIMES]++;
+        (*EMMst)[key][ST_MAX_VOLUME] = bemm->getMaxVolume();
     } else {
         for (int i=0; i<queryList.size(); i++) {
             ValueEntry ve = queryList.at(i);
@@ -287,7 +324,7 @@ vector< vector<KV> > Client::Coalesce(const char *key, int cnt, vector<ValueEntr
 
     int queryLen = queryVEL.size();
     int *preRandom = new int[queryLen];
-    int notEmptyNum = 0;     // 非空元素个数
+    int notEmptyNum = 0, preNotEmptyNum;     // 非空元素个数, 当前key的实际容量
     vector<int> deledIndexs;     // 用于记录删除的元素索引,用于支持一次融合多次更新
 
     unordered_map<int, pair<int, int> > map;    // counter -> (ValueEntry_index, value_index)
@@ -311,12 +348,13 @@ vector< vector<KV> > Client::Coalesce(const char *key, int cnt, vector<ValueEntr
             }
         }
     }
+    preNotEmptyNum = notEmptyNum;   // preNotEmptyNum 记录在融合操作之前的实际容量
     // 解析更新
     for (UpdataEntry &updata : ues) {
         updata.Dec(LoadKey());
         updata.DivRandom();
         char *value = updata.DivValue();
-        KV updataKv(value);                                     // 更新后的值
+        KV updataKv(value);                         // 更新后的值
         char op = updata.DivOP();
 
         int upCounter = updataKv.counter;           // 操作的counter
@@ -387,6 +425,55 @@ vector< vector<KV> > Client::Coalesce(const char *key, int cnt, vector<ValueEntr
             break;
         } 
     }
+
+    volumeNumArr[preNotEmptyNum]--;
+    uint32_t currMaxVolume = getVolumeNumArrLength();
+    /**************************************** 判断并调整l ****************************************/
+    // 判断是否超过目前volumeNumArr的极限,是就进行扩容
+    if (notEmptyNum >= currMaxVolume) {
+        ExpandVNArr();
+        volumeNumArr[notEmptyNum]++;
+    }
+    // 判断是否触发了l的变化
+    if (notEmptyNum > bemm->getMaxVolume()) {
+        // 触发l变大
+        bemm->setMaxVolume(notEmptyNum);
+    } else if (preNotEmptyNum == currMaxVolume && volumeNumArr[preNotEmptyNum] == 0) {
+        // l 变小
+        for (int i=currMaxVolume; i>0; i--) {
+            if (volumeNumArr[i] != 0) {
+                bemm->setMaxVolume(i);
+                break;
+            }
+        }
+    }
+    /**************************************** 判断并收缩EMM中元素至符合当前容量 ****************************************/
+    int preVolume = (*EMMst)[key][ST_MAX_VOLUME];
+    int currVolume = bemm->getMaxVolume();
+    if ( preVolume > currVolume ) {    // 如果其 上次融合的时候的最大容量 大于 当前的最大容量, 就需要调整
+        // 如果存在 有意义的value放在无意义的部分,那么就需要将其移动至有意义的部分
+        for (int i=currVolume - 1; i < currVolume; i++) {   
+            // 判断是否为该指纹的有意义的值
+            for (int j = 0; j < resolueQuery[i].size(); j++) {
+                if ( strcmp(resolueQuery[i][j].key, key) == 0) {
+                    if (!resolueQuery[i][j].isPadding()) {   // 删除填充值
+                        // 找到最短的位置,把值填充到那个位置
+                        int minIndex = 0;
+                        for (int p=1; p<currVolume; p++) {
+                            if (resolueQuery[minIndex].size() > resolueQuery[i].size()) {
+                                minIndex = i;
+                            }
+                        }
+                        // 拷贝值
+                        resolueQuery[minIndex].push_back(resolueQuery[i][j]);
+                    }
+                    resolueQuery[i].erase(resolueQuery[i].begin() + j);
+                }
+            }
+        }
+    }
+    // 调整EMMst-ST_MAX_VOLUME
+    (*EMMst)[key][ST_MAX_VOLUME] = currMaxVolume;
     // 提交更新
     for (int i=0; i<resolueQuery.size(); i++) {
         ValueEntry ve(resolueQuery[i]);

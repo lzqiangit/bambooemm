@@ -13,6 +13,7 @@ using namespace std;
 void showMenu() {
     cout << "=================================================================" << endl;
     cout << "查询:S\t" << "插入:I\t" << "删除:D\t" << "修改:E\t" << endl;
+    cout << "MaxVolume:V\t"  <<endl;  
     cout << "清屏:C\t" << "退出:X\t" <<endl;  
     cout << "=================================================================" << endl;
 }
@@ -34,7 +35,6 @@ string InputStr(string name) {
     cin >> val;
     return val;
 }
-
 
 int InputNum(string name) {
     int num;
@@ -122,6 +122,10 @@ int main(int argc, char const *argv[])
         case 'M':
         case 'm':
             showMenu();
+            break;
+        case 'V':
+        case 'v':
+            cout << "MaxVolume:" <<  client->getBEMM()->getMaxVolume() << endl;
             break;
         default:
             cout << "命令错误" << endl;
