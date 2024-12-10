@@ -69,9 +69,10 @@ private:
      * 拼接 操作对应的操作符和val
      */
     char *SpliceOpVal(char op, uint32_t counter, char *val); 
-public:
     // 融合
     vector< vector<KV> > Coalesce(const char *key, int cnt, vector<ValueEntry> old);    
+    bool ShrinkVolume(vector< vector<KV> > &resolueQuery, const char *key, int preVolume);
+    void SubmitUpdate(vector<vector<KV>> resolueQuery, const char *key, int *preRandom);
 };
 
 Client::Client(/* args */)
@@ -242,46 +243,32 @@ void Client::Update(char *key, char op, KV kcv) {
 vector<KV> Client::Query(const char *key) {
 
     string hashKey = KV::MakeHashKey(key);
-    vector<ValueEntry> queryList = bemm->Query(hashKey);
+    vector<ValueEntry> queryList;
+    if (EMMst->find(key) != EMMst->end() && (*EMMst)[key][ST_MAX_VOLUME] > bemm->getMaxVolume()) {
+        queryList = bemm->Query(hashKey, (*EMMst)[key][ST_MAX_VOLUME]);
+    } else {
+        queryList = bemm->Query(hashKey);
+    }
     vector< vector<KV> > resolueQuery;
 
     // 
-    int tempCounter = 0;
-    for (ValueEntry &query : queryList) {   // 使用引用才能真正实现queryList中元素的解密
-        if (query.getLen() > 0) {
-            query.Dec(LoadKey());
-        } else {
-            // 判断是否存在长度为0的valueE,如果有,那么就说明这个key是一个新的key,需要将这些valueE中填充值
-            // 如果这个key是一个新值,但是其搜索出来的valueE中均有值,那么就不用为这个新key进行特殊的处理
-            // 注意融合中,新的key和非新的key的区别在于,新的key的空value是不存在的
-            KV newPaddingKV((char*)key, tempCounter);
-            query.SetValue(newPaddingKV);
-            query.SpliceRandom();       // 需要统一格式,添加随机数
-        }
-        tempCounter++;
-    }    
-
 
     uint32_t cnt = 0;
     if ( EMMst->find(key) != EMMst->end() ) {
         cnt = (*EMMst)[key][ST_SUBMIT_TIMES];
     }
-    if (cnt > 0) {
-        // 融合更新, 并解析结果
-        resolueQuery = Coalesce(key, cnt, queryList);
-        (*EMMst)[key][ST_SUBMIT_TIMES] = 0;
-        (*EMMst)[key][ST_COALESCE_TIMES]++;
-        (*EMMst)[key][ST_MAX_VOLUME] = bemm->getMaxVolume();
-    } else {
-        for (int i=0; i<queryList.size(); i++) {
-            ValueEntry ve = queryList.at(i);
-            ve.DivRandom();
-            // 解析value值
-            vector<char*> values = ve.DivValue();
-            vector<KV> kvs = KV::LoadKVList(values);
-            resolueQuery.push_back(kvs);
-        }
-    }
+    // 融合更新, 并解析结果
+    resolueQuery = Coalesce(key, cnt, queryList);
+    // } else {
+    //     for (int i=0; i<queryList.size(); i++) {
+    //         ValueEntry ve = queryList.at(i);
+    //         ve.DivRandom();
+    //         // 解析value值
+    //         vector<char*> values = ve.DivValue();
+    //         vector<KV> kvs = KV::LoadKVList(values);
+    //         resolueQuery.push_back(kvs);
+    //     }
+    // }
     // 找到真正有意义的解
     vector<KV> ret;
     for (auto kvs : resolueQuery) {
@@ -318,38 +305,80 @@ char *Client::SpliceOpVal(char op, uint32_t counter, char *val) {
 }
 
 vector< vector<KV> > Client::Coalesce(const char *key, int cnt, vector<ValueEntry> queryVEL) {
-    vector<ValueEntry> ret;
-    uint32_t x = GetXHash(key);
-    vector<UpdataEntry> ues = bemm->GetUpdataList(x, cnt);
+
 
     int queryLen = queryVEL.size();
     int *preRandom = new int[queryLen];
     int notEmptyNum = 0, preNotEmptyNum;     // 非空元素个数, 当前key的实际容量
     vector<int> deledIndexs;     // 用于记录删除的元素索引,用于支持一次融合多次更新
+    bool isAdjust = false;
 
     unordered_map<int, pair<int, int> > map;    // counter -> (ValueEntry_index, value_index)
     vector< vector<KV> > resolueQuery;      // 用于存储解析的查询结果, 并在其上进行更新操作, 
-    // 解析查询结果, 找到每个 key||counter 对应的 qeryVEL 的索引, 并记录下随机数
-    for (int i=0; i<queryLen; i++) {
-        ValueEntry ve = queryVEL.at(i);
-        preRandom[i] = ve.DivRandom();    // 记录随机数
-        // 解析value值
-        vector<char*> values = ve.DivValue();
-        vector<KV> kvs = KV::LoadKVList(values);
-        resolueQuery.push_back(kvs);
-        // 遍历判断
-        for (int j=0; j<kvs.size(); j++) {
-            KV kv = kvs.at(j);
-            if ( strcmp( kv.key, key) == 0) {
-                map[kv.counter] = {i, j};       // 还可能有找不到的counter,这种counter就是共用了其他value的值！
-                if (!kv.isPadding()) {
-                    notEmptyNum++;
+    // 解密并 解析查询结果, 找到每个 key||counter 对应的 qeryVEL 的索引, 并记录下随机数
+    for (int i=0; i<queryLen; i++) {   // 使用引用才能真正实现queryList中元素的解密
+        if (queryVEL[i].getLen() > 0) {
+            queryVEL[i].Dec(LoadKey());
+            preRandom[i] = queryVEL[i].DivRandom();    // 记录随机数
+            // 解析value值
+            vector<char*> values = queryVEL[i].DivValue();
+            vector<KV> kvs = KV::LoadKVList(values);
+            resolueQuery.push_back(kvs);
+            // 遍历判断
+            for (int j=0; j<kvs.size(); j++) {
+                KV kv = kvs.at(j);
+                if ( strcmp( kv.key, key) == 0) {
+                           // 还可能有找不到的counter,这种counter就是共用了其他value的值！
+                    if (!kv.isPadding()) {
+                        map[kv.counter] = {i, j};
+                        notEmptyNum++;
+                // 是填充值
+                // - 在扩展l中, 可能出现两个同一counter的值, 填充值一定在末尾, 如果下前面找到了相同的counter值,一定要将前面的值移动到此处 
+                // 没有找到,正常构建索引即可
+                    } else if (map.find(i) != map.end()) {
+                        // 此种情况只会出现在 导致l 增大的key 在其导致l增大后的第二次查询中
+                        // 如果是填充值, 还需要判断
+                        // 找到了, 直接移动即可
+                        pair<int, int> prePos = map[i];    // 对应值存储的位置
+                        // 复制resolueQuery中对应位置的值到当前的i的位置
+                        KV tempKV = resolueQuery[prePos.first][prePos.second];
+                        // 删除原位置的值
+                        resolueQuery[prePos.first].erase( resolueQuery[prePos.first].begin() + prePos.second );
+                        // 修改索引
+                        map[i] = {i, 0};
+                        resolueQuery[i].erase(resolueQuery[i].begin() + j);
+                        resolueQuery[i].push_back(tempKV);
+                        isAdjust = true;
+                    } else {
+                        // 填充值
+                        map[kv.counter] = {i, j};
+                    }
                 }
             }
-        }
-    }
+        } else {
+            // 此种情况只会出现在 出现新的key 的情况下
+            // 判断是否存在长度为0的valueE,如果有,那么就说明这个key是一个新的key,需要将这些valueE中填充值
+            // 如果这个key是一个新值,但是其搜索出来的valueE中均有值,那么就不用为这个新key进行特殊的处理
+            // 如果是因为l增大导致的空值,那么就直接对于counter值到这个空值位即可
+            KV newPaddingKV((char*)key, i);
+            resolueQuery[i].push_back(newPaddingKV);
+            map[i] = {i, 0};
+        }      
+    }    
+
     preNotEmptyNum = notEmptyNum;   // preNotEmptyNum 记录在融合操作之前的实际容量
+    if (cnt <= 0) {
+        if (  (*EMMst).find(key) != (*EMMst).end() && ShrinkVolume(resolueQuery, key, (*EMMst)[key][ST_MAX_VOLUME]) ) {
+            SubmitUpdate(resolueQuery, key, preRandom);
+            (*EMMst)[key][ST_MAX_VOLUME] = bemm->getMaxVolume();
+        } else {
+            if (isAdjust)   SubmitUpdate(resolueQuery, key, preRandom);
+        }
+        return resolueQuery;
+    }
     // 解析更新
+    uint32_t x = GetXHash(key);
+    vector<UpdataEntry> ues = bemm->GetUpdataList(x, cnt);
     for (UpdataEntry &updata : ues) {
         updata.Dec(LoadKey());
         updata.DivRandom();
@@ -427,15 +456,15 @@ vector< vector<KV> > Client::Coalesce(const char *key, int cnt, vector<ValueEntr
     }
 
     volumeNumArr[preNotEmptyNum]--;
-    uint32_t currMaxVolume = getVolumeNumArrLength();
-    /**************************************** 判断并调整l ****************************************/
     // 判断是否超过目前volumeNumArr的极限,是就进行扩容
-    if (notEmptyNum >= currMaxVolume) {
-        ExpandVNArr();
-        volumeNumArr[notEmptyNum]++;
+    if (notEmptyNum >= getVolumeNumArrLength()) {
+        ExpandVNArr(); 
     }
+    volumeNumArr[notEmptyNum]++;
+    /**************************************** 判断并调整l ****************************************/
+    uint32_t currMaxVolume = bemm->getMaxVolume();
     // 判断是否触发了l的变化
-    if (notEmptyNum > bemm->getMaxVolume()) {
+    if (notEmptyNum > currMaxVolume) {
         // 触发l变大
         bemm->setMaxVolume(notEmptyNum);
     } else if (preNotEmptyNum == currMaxVolume && volumeNumArr[preNotEmptyNum] == 0) {
@@ -448,11 +477,23 @@ vector< vector<KV> > Client::Coalesce(const char *key, int cnt, vector<ValueEntr
         }
     }
     /**************************************** 判断并收缩EMM中元素至符合当前容量 ****************************************/
-    int preVolume = (*EMMst)[key][ST_MAX_VOLUME];
+    // 调整EMMst
+    ShrinkVolume(resolueQuery, key, (*EMMst)[key][ST_MAX_VOLUME]);
+    SubmitUpdate(resolueQuery, key, preRandom);
+
+    (*EMMst)[key][ST_SUBMIT_TIMES] = 0;
+    (*EMMst)[key][ST_COALESCE_TIMES]++;
+    (*EMMst)[key][ST_MAX_VOLUME] = bemm->getMaxVolume();
+
+    return resolueQuery;
+}
+
+bool Client::ShrinkVolume(vector<vector<KV>> &resolueQuery, const char *key, int preVolume) {
     int currVolume = bemm->getMaxVolume();
     if ( preVolume > currVolume ) {    // 如果其 上次融合的时候的最大容量 大于 当前的最大容量, 就需要调整
         // 如果存在 有意义的value放在无意义的部分,那么就需要将其移动至有意义的部分
-        for (int i=currVolume - 1; i < currVolume; i++) {   
+        bool changed = false;
+        for (int i=currVolume; i < preVolume; i++) {   
             // 判断是否为该指纹的有意义的值
             for (int j = 0; j < resolueQuery[i].size(); j++) {
                 if ( strcmp(resolueQuery[i][j].key, key) == 0) {
@@ -466,20 +507,22 @@ vector< vector<KV> > Client::Coalesce(const char *key, int cnt, vector<ValueEntr
                         }
                         // 拷贝值
                         resolueQuery[minIndex].push_back(resolueQuery[i][j]);
+                        changed = true;
                     }
                     resolueQuery[i].erase(resolueQuery[i].begin() + j);
                 }
             }
         }
+        return changed;
+    } else {
+        return false;
     }
-    // 调整EMMst-ST_MAX_VOLUME
-    (*EMMst)[key][ST_MAX_VOLUME] = currMaxVolume;
-    // 提交更新
+}
+
+void Client::SubmitUpdate(vector<vector<KV>> resolueQuery, const char *key, int *preRandom) {
     for (int i=0; i<resolueQuery.size(); i++) {
         ValueEntry ve(resolueQuery[i]);
         EncryptAndUpload(key, i, ve, preRandom[i]);
     }
-
-    return resolueQuery;
 }
 #endif 

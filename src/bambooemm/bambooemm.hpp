@@ -68,6 +68,7 @@ public:
      * query前是否需要加密？
      */
     vector<ValueEntry> Query(string hashKey);
+    vector<ValueEntry> Query(string hashKey, int l);
     bool isExistKeyCounter(string hashKey, int counter);
     BambooFilter *getEMM();
     void AddRandomAndEncrypt(char *password);
@@ -136,6 +137,24 @@ vector<ValueEntry> BambooEMM::Query(string hashKey)
     vector<ValueEntry> ret;
     uint32_t seg_index, bucket_index, tag;
     for (int i = 0; i < max_volume; i++)
+    {
+        char *hashKey_counter = KV::MakeSearchKey(hashKey, i);            // 这个逻辑移动至Client中!!!
+        ValueEntry valueE;
+        bf->Lookup(hashKey_counter, valueE);
+        ret.push_back(valueE);
+
+    }
+    return ret;
+}
+
+/**
+ * 传入哈希后的key,返回该key的l给valueEntry
+ */
+vector<ValueEntry> BambooEMM::Query(string hashKey, int l)
+{
+    vector<ValueEntry> ret;
+    uint32_t seg_index, bucket_index, tag;
+    for (int i = 0; i < l; i++)
     {
         char *hashKey_counter = KV::MakeSearchKey(hashKey, i);            // 这个逻辑移动至Client中!!!
         ValueEntry valueE;
