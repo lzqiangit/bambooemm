@@ -360,6 +360,8 @@ vector< vector<KV> > Client::Coalesce(const char *key, int cnt, vector<ValueEntr
             // 判断是否存在长度为0的valueE,如果有,那么就说明这个key是一个新的key,需要将这些valueE中填充值
             // 如果这个key是一个新值,但是其搜索出来的valueE中均有值,那么就不用为这个新key进行特殊的处理
             // 如果是因为l增大导致的空值,那么就直接对于counter值到这个空值位即可
+            vector<KV> newKVS;
+            resolueQuery.push_back(newKVS);
             KV newPaddingKV((char*)key, i);
             resolueQuery[i].push_back(newPaddingKV);
             map[i] = {i, 0};
