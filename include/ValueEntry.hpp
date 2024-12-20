@@ -82,6 +82,8 @@ public:
     char *getP() const;
 
     ValueEntry& operator=(ValueEntry &ve);
+
+    size_t getMemOverhead();
 };
 
 ValueEntry::ValueEntry()
@@ -351,5 +353,9 @@ ValueEntry& ValueEntry::operator=(ValueEntry &ve){
     memcpy(p, ve.getP(), len);
     // 实现链式编程
     return *this;
+}
+
+size_t ValueEntry::getMemOverhead() {
+    return sizeof(int) + sizeof(char*) + len * sizeof(char);
 }
 #endif

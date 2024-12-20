@@ -93,6 +93,8 @@ public:
      * 向各个段和各桶的各个 `非空` 值的value中添加随机数
      */
     void AddRandom();
+
+    size_t getMemOverhead();
 };
 
 BambooFilter::BambooFilter(uint32_t capacity, uint32_t split_condition_param)
@@ -240,4 +242,16 @@ void BambooFilter::AddRandom() {
     {
         segment->AddRandom();
     }
+}
+
+size_t BambooFilter::getMemOverhead() {
+    size_t overhead = 0;
+
+    for (auto seg : hash_table_) {
+        overhead += seg->getMemOverhead();
+    }
+
+    overhead += sizeof(BambooFilter);  
+
+    return overhead;
 }

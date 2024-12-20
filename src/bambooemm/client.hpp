@@ -62,6 +62,18 @@ public:
      * 查询
      */
     vector<KV> Query(const char *key);
+    /**
+     * 计算存储开销
+     * 返回各个部分的存储开销
+     * client: client的存储开销
+     *      EMMst
+     *      volumeNumArr
+     *      others  : 其他成员变量和指针的存储开销
+     * server: server的存储开销
+     *      
+     * 
+     */
+    unordered_map<string, unordered_map<string, size_t>> getMemOverHead();
 
 private:
     uint32_t GetXHash(const char *key);
@@ -118,7 +130,7 @@ void Client::SetupEMM(vector<KV *> kvList, int n, int l)
     this->n = n;
     vector<KV *> maxCounterKVList; // 存储每个key中counter最大的元素
     this->bemm = new BambooEMM();
-    this->bemm->Setup(2, MIN_STAR_CAP, l, LoadKey());           // LoadKey应该作为函数参数传入好一些!!!
+    this->bemm->Setup(2, MIN_STAR_CAP, l);           // LoadKey应该作为函数参数传入好一些!!!
     char *tempKey = kvList.at(0)->key;
      // 初始化volumeNum
     int volumeNumSize = l * 1.5;
@@ -527,4 +539,28 @@ void Client::SubmitUpdate(vector<vector<KV>> resolueQuery, const char *key, int 
         EncryptAndUpload(key, i, ve, preRandom[i]);
     }
 }
+
+unordered_map<string, unordered_map<string, size_t>> Client::getMemOverHead() {
+    unordered_map<string, unordered_map<string, size_t>> overheadMap;
+
+    unordered_map<string, size_t> clientMap;
+    // EMMst大小
+    size_t tempStSize = 0;  
+    for (const auto& pair : (*EMMst)) {
+        tempStSize += pair.first.length();
+        tempStSize += sizeof(uint32_t) * 3;
+    }
+    clientMap["EMMst"] = tempStSize;
+    // volumeNumArr大小
+    clientMap["volumeNumArr"] = sizeof(uint32_t) * volumeNumArr[0];
+    clientMap["others"] = sizeof(Client);
+    clientMap["sum"] = tempStSize + clientMap["volumeNumArr"] + clientMap["others"];
+    // 装入clientMap
+    overheadMap["client"] = clientMap;
+    // 调用函数统计服务端
+    overheadMap["server"] = this->bemm->getMemOverhead();
+    return overheadMap;
+}
+
+
 #endif 

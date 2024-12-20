@@ -10,6 +10,7 @@
 #include "filterposition.hpp"
 #include "UpdataEntry.hpp"
 #include <vector>
+#include <unordered_map>
 
 #define DEFAULT_EMMU_SIZE 4096
 
@@ -18,13 +19,10 @@ class BambooEMM
 {
 
 private:
-    BambooFilter *bf;
-    unsigned char *KI;
-    char *value;
+    BambooFilter *bf;        // 需要统计
     uint32_t max_volume, elem_num;
-    char *password;
     bool isEnc = false;
-    UpdataEntry **updata;    // EMMu
+    UpdataEntry **updata;    // EMMu    需要统计
     uint32_t emmUSize;
 
 public:
@@ -47,10 +45,7 @@ public:
 
     ~BambooEMM()
     {
-        delete[] value;
         delete[] bf;
-        delete[] KI;
-        delete[] password;
         for (int i=0; i<emmUSize; i++) {
             if (updata[i] != nullptr) {
                 delete updata[i];
@@ -59,7 +54,7 @@ public:
         delete[] updata;
     }
 
-    bool Setup(int split_condition_param, int n, uint32_t l, char *password);
+    bool Setup(int split_condition_param, int n, uint32_t l);
     //bool LoadMM(vector<KV *> mm);
     bool SetupInsert(KV *kv);
 
@@ -92,11 +87,20 @@ public:
 
     uint32_t getMaxVolume();
     void setMaxVolume(uint32_t newVolume);
+
+    /**
+     * 计算存储开销
+     * 返回各个部分的存储开销
+     * server: server的存储开销
+     *      bf
+     *      updata
+     * 
+     */
+    unordered_map<string, size_t> getMemOverhead();
 };
 
-bool BambooEMM::Setup(int split_condition_param, int n, uint32_t l, char *password)
+bool BambooEMM::Setup(int split_condition_param, int n, uint32_t l)
 {
-    this->password = password;
     // uint64_t volumn = n > 8192 ? n : 8192;
     bf = new BambooFilter(upperpower2(n), split_condition_param);
     elem_num = n;
@@ -228,6 +232,7 @@ vector<UpdataEntry> BambooEMM::GetUpdataList(uint32_t x, int cnt) {
         ret.push_back( *(updata[pos]) );
         // 查找后就清空
         delete updata[pos];
+        updata[pos] = nullptr;
     }
     return ret;
 }
@@ -242,5 +247,24 @@ uint32_t BambooEMM::getMaxVolume() {
 
 void BambooEMM::setMaxVolume(uint32_t newVolume) {
     this->max_volume = newVolume;
+}
+
+unordered_map<string, size_t> BambooEMM::getMemOverhead() {
+    
+    unordered_map<string, size_t> overheadMap;
+
+    size_t tempUpdataSize = 0;
+    tempUpdataSize += sizeof(UpdataEntry*) * emmUSize;
+    for (int i=0; i<emmUSize; i++) {
+        if (updata[i] != nullptr) {
+            tempUpdataSize += updata[i]->getMemOverhead();
+        }
+    }
+    overheadMap["updata"] = tempUpdataSize;
+    // 获取bamboo的空间
+    overheadMap["bf"] = bf->getMemOverhead();
+    overheadMap["others"] = sizeof(BambooEMM);
+    overheadMap["sum"] = overheadMap["updata"] + overheadMap["bf"] + overheadMap["others"];
+    return overheadMap;
 }
 #endif

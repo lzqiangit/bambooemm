@@ -662,4 +662,19 @@ public:
             }
         }
     }
+
+    size_t getMemOverhead() {
+        size_t overhead = 0;
+        // data_base的大小
+        overhead += total_size * sizeof(char);
+        // 统计value_set指针的大小
+        overhead += sizeof(ValueEntry*) * getTagNum();
+        // 统计valueSet实际的大小
+        for (int i=0; i<getTagNum(); i++) {
+            overhead += value_set[i]->getMemOverhead();
+        }
+        // 统计其他元素的大小
+        overhead += sizeof(Segment);
+        return overhead;
+    }
 };
