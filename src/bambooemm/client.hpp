@@ -73,7 +73,7 @@ public:
      *      
      * 
      */
-    unordered_map<string, unordered_map<string, size_t>> getMemOverHead();
+    size_t getMemOverHead();
 
 private:
     uint32_t GetXHash(const char *key);
@@ -540,26 +540,31 @@ void Client::SubmitUpdate(vector<vector<KV>> resolueQuery, const char *key, int 
     }
 }
 
-unordered_map<string, unordered_map<string, size_t>> Client::getMemOverHead() {
-    unordered_map<string, unordered_map<string, size_t>> overheadMap;
-
-    unordered_map<string, size_t> clientMap;
-    // EMMst大小
-    size_t tempStSize = 0;  
+size_t Client::getMemOverHead() {
+    size_t size = 0;  
+    cout << "==================================================================" << endl;
+    cout << "--------------------------------Client----------------------------" << endl;
+    
     for (const auto& pair : (*EMMst)) {
-        tempStSize += pair.first.length();
-        tempStSize += sizeof(uint32_t) * 3;
+        size += pair.first.length();
+        size += sizeof(uint32_t) * 3;
     }
-    clientMap["EMMst"] = tempStSize;
+    cout << "EMMst:" << size << endl;
     // volumeNumArr大小
-    clientMap["volumeNumArr"] = sizeof(uint32_t) * volumeNumArr[0];
-    clientMap["others"] = sizeof(Client);
-    clientMap["sum"] = tempStSize + clientMap["volumeNumArr"] + clientMap["others"];
-    // 装入clientMap
-    overheadMap["client"] = clientMap;
+    size_t volumeNumArrSize = sizeof(uint32_t) * volumeNumArr[0];
+    cout << "volumeNumArr:" << volumeNumArrSize << endl;
+    size += volumeNumArrSize;
+
+    cout << "others" << sizeof(Client) << endl;
+    size += sizeof(Client);
+
+    cout << "sum" << size << endl;
     // 调用函数统计服务端
-    overheadMap["server"] = this->bemm->getMemOverhead();
-    return overheadMap;
+    size += this->bemm->getMemOverhead();
+    cout << "-----------------------------------------------------------------" << endl;
+    cout << "CS总占用空间:" << getMemSizeStr(size) << endl;
+    cout << "==================================================================" << endl;
+    return size;
 }
 
 

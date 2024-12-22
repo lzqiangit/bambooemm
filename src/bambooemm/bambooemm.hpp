@@ -96,7 +96,7 @@ public:
      *      updata
      * 
      */
-    unordered_map<string, size_t> getMemOverhead();
+    size_t getMemOverhead();
 };
 
 bool BambooEMM::Setup(int split_condition_param, int n, uint32_t l)
@@ -249,22 +249,34 @@ void BambooEMM::setMaxVolume(uint32_t newVolume) {
     this->max_volume = newVolume;
 }
 
-unordered_map<string, size_t> BambooEMM::getMemOverhead() {
+size_t BambooEMM::getMemOverhead() {
     
-    unordered_map<string, size_t> overheadMap;
+    size_t mySize = 0;
 
-    size_t tempUpdataSize = 0;
-    tempUpdataSize += sizeof(UpdataEntry*) * emmUSize;
+    cout << "-----------------------------Server-------------------------------" << endl;
+    // Emmu指针
+    size_t emmUMemSize = sizeof(UpdataEntry*) * emmUSize;
+    cout << "emmu(指针):" << getMemSizeStr(emmUMemSize) << endl;
+    mySize += emmUMemSize;
+    // updata
+    size_t upMemSize = 0;
     for (int i=0; i<emmUSize; i++) {
         if (updata[i] != nullptr) {
-            tempUpdataSize += updata[i]->getMemOverhead();
+            upMemSize += updata[i]->getMemOverhead();
         }
     }
-    overheadMap["updata"] = tempUpdataSize;
+    cout << "updata(元素):" << getMemSizeStr(upMemSize) << endl;
+    mySize += upMemSize;
     // 获取bamboo的空间
-    overheadMap["bf"] = bf->getMemOverhead();
-    overheadMap["others"] = sizeof(BambooEMM);
-    overheadMap["sum"] = overheadMap["updata"] + overheadMap["bf"] + overheadMap["others"];
-    return overheadMap;
+    size_t bfMemSize = bf->getMemOverhead();
+    cout << "Bamboo:" << getMemSizeStr(bfMemSize) << endl;
+    mySize += bfMemSize;
+    // 获取其他元素
+    size_t otherMemSize = sizeof(BambooEMM);
+    cout << "others:" << getMemSizeStr(otherMemSize) << endl;
+    mySize += otherMemSize;
+    // 输出总的
+    cout << "Server总空间:" << getMemSizeStr(mySize) << endl;
+    return mySize;
 }
 #endif

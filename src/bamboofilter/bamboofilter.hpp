@@ -246,12 +246,27 @@ void BambooFilter::AddRandom() {
 
 size_t BambooFilter::getMemOverhead() {
     size_t overhead = 0;
+    size_t tempSize = 0;
+    cout << "\t" << "-------------------------Bamboo---------------------------" << endl;
 
+    cout << "\t\t" << "========================Segment===========================" << endl;
+    cout << "\t\t" << "编号\t" << "桶数量\t" << "链数量\t" << "key大小\t\t\t" << "value指针大小\t\t" << "value大小\t\t" << "总大小\t" << endl; 
+    int id = 0;
+    size_t segSize = 0;
     for (auto seg : hash_table_) {
-        overhead += seg->getMemOverhead();
+        segSize += seg->getMemOverhead(id++);
     }
+    overhead += segSize;
+    cout << "\t\t" << "-----------------------------------------------------------" << endl;
+    cout << "\t\t" << "总大小:" << getMemSizeStr(segSize) << endl; 
+    cout << "\t\t" << "===========================================================" << endl;
+    
+    size_t otherMemSize = sizeof(BambooFilter); 
+    overhead += otherMemSize;
+     
+    cout << "\t" << "others:" << getMemSizeStr(otherMemSize) << endl;
 
-    overhead += sizeof(BambooFilter);  
-
+    cout << "\t" << "Bamboo总大小:" << getMemSizeStr(overhead) << endl;
+    cout << "\t" << "----------------------------------------------------------" << endl;
     return overhead;
 }

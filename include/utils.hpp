@@ -59,5 +59,6 @@ uint32_t GetYHash(uint32_t x, uint32_t st1);
 
 // 获取时间戳
 uint64_t getTimestamp();
+string getMemSizeStr(size_t size);
 
 #endif

@@ -663,18 +663,25 @@ public:
         }
     }
 
-    size_t getMemOverhead() {
+    size_t getMemOverhead(int id) {
         size_t overhead = 0;
         // data_base的大小
-        overhead += total_size * sizeof(char);
+        size_t keySize = total_size * sizeof(char);
+        overhead += keySize;
         // 统计value_set指针的大小
-        overhead += sizeof(ValueEntry*) * getTagNum();
+        size_t valPSize = sizeof(ValueEntry*) * getTagNum();
+        overhead += valPSize;
         // 统计valueSet实际的大小
+        size_t valSize = 0;
         for (int i=0; i<getTagNum(); i++) {
-            overhead += value_set[i]->getMemOverhead();
+            valSize += value_set[i]->getMemOverhead();
         }
+        overhead += valSize;
         // 统计其他元素的大小
         overhead += sizeof(Segment);
+
+        cout << "\t\t" << id << "\t" << chain_num << "\t" << chain_capacity << "\t" << getMemSizeStr(keySize) << "\t" << getMemSizeStr(valPSize) << "\t" << getMemSizeStr(valSize) << "\t" << getMemSizeStr(overhead) << endl;
+        
         return overhead;
     }
 };

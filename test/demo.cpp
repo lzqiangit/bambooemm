@@ -43,16 +43,6 @@ int InputNum(string name) {
     return num;
 }
 
-string getMemSizeStr(size_t size) {
-    if (size < 1024) {
-        return to_string(size) + "B";
-    } else if (size < 1024 * 1024) {
-        return to_string( (float)(size) / 1024.f ) + "KB";
-    } else {
-        return to_string( (float)(size) / 1024.f / 1024.f ) + "MB";
-    }
-}
-
 void ShowKVList(vector<KV> kvs) {
     cout << endl;
     cout << "=================================================================" << endl;
@@ -63,24 +53,6 @@ void ShowKVList(vector<KV> kvs) {
     }
     cout << "=================================================================" << endl;
     cout << endl;
-}
-
-void ShowOverhead(unordered_map<string, unordered_map<string, size_t>> overhead) {
-    unordered_map<string, size_t> client = overhead["client"];
-    unordered_map<string, size_t> server = overhead["server"];
-
-    cout << endl;
-    cout << "=================================================================" << endl;
-    cout << "Client:" << "\t" <<"总空间:" << getMemSizeStr(client["sum"]) << endl;
-    cout << "EMMst:" << getMemSizeStr(client["EMMst"]) << endl;
-    cout << "volumeNumArr:" << getMemSizeStr(client["volumeNumArr"]) << endl;
-    cout << "others:" << getMemSizeStr(client["others"]) << endl;
-    cout << "-----------------------------------------------------------------" << endl;
-    cout << "Server:" << "\t" <<"总空间:" << getMemSizeStr(server["sum"]) << endl;
-    cout << "Bamboofilter:" << getMemSizeStr(server["bf"]) << endl;
-    cout << "updata:" << getMemSizeStr(server["updata"]) << endl;
-    cout << "others:" << getMemSizeStr(server["others"]) << endl;
-    cout << "=================================================================" << endl;
 }
 
 int main(int argc, char const *argv[])
@@ -158,8 +130,8 @@ int main(int argc, char const *argv[])
             break;
         case 'O':
         case 'o':
-            overhead = client->getMemOverHead();
-            ShowOverhead(overhead);
+            client->getMemOverHead();
+
             break;
         default:
             cout << "命令错误" << endl;

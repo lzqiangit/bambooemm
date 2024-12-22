@@ -406,3 +406,13 @@ uint64_t getTimestamp() {
     time_t now = time(nullptr);
     return static_cast<uint64_t>(now) * 1000;
 }
+
+string getMemSizeStr(size_t size) {
+    if (size < 1024) {
+        return to_string(size) + "B" + "(" + to_string(size) + ")";
+    } else if (size < 1024 * 1024) {
+        return to_string( (float)(size) / 1024.f ) + "KB" + "(" + to_string(size) + ")";
+    } else {
+        return to_string( (float)(size) / 1024.f / 1024.f ) + "MB" + "(" + to_string(size) + ")";
+    }
+}
