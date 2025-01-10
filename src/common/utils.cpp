@@ -191,7 +191,9 @@ int aes_encrypt_string(char *_pPassword, char *_pInput, int _InLen, char *_pOutB
     }
 
     // 设置使用 256 位密钥长度的 AES 加密算法，并采用 CBC 模式。
-    const EVP_CIPHER *cipherType = EVP_aes_256_cbc();
+    // CTR mode with key of size 32 bytes
+    const EVP_CIPHER *cipherType = EVP_aes_256_ctr();       // EVP_aes_256_cbc();
+    //cout << "CTR_ENC_MODE" << endl;
     if (cipherType == NULL)
     {
         goto clean;
@@ -274,7 +276,7 @@ int aes_decrypt_string(char *_pPassword, char *_pInput, int _InLen, char *_pOutB
     }
 
     // 设置使用 256 位密钥长度的 AES 加密算法，并采用 CBC 模式。
-    const EVP_CIPHER *cipherType = EVP_aes_256_cbc();
+    const EVP_CIPHER *cipherType = EVP_aes_256_ctr();   // EVP_aes_256_cbc
     if (cipherType == NULL)
     {
         goto clean;

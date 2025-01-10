@@ -1,3 +1,4 @@
+package random;
 
 
 import java.sql.Connection;
@@ -22,7 +23,7 @@ public class MakeData {
 
         /*=========================== 设置生成随机数的参数 ===========================*/
         sql = "insert into random values (?, ?, ?)";
-        int keyNum = 16384;
+        // int keyNum = 16384;
         int maxVolum = 30;
         int n = (int)Math.pow(2, 22);
 
@@ -77,50 +78,6 @@ public class MakeData {
         connection.close();
 
         System.out.println("成功添加" + counter + "条记录！");
-
-
-
-
-        // sql = "insert into random values (?, ?, ?)";
-        // int keyNum = 16384;
-        // int maxVolum = 30;
-        // int n = (int)Math.pow(2, 16);
-
-        // Random random = new Random();
-        // int valueNum = 0;
-        // String key = null;
-        // String value = null;
-        // int counter = 0;
-        // statement = connection.prepareStatement(sql);
-        // for (int i=0; i<keyNum; i++) {
-        //     do {
-        //         valueNum = random.nextInt(maxVolum);
-        //     } while (valueNum == 0);
-            
-        //     key = "key_" + i;
-        //     for (int j=0; j<=valueNum; j++) {
-        //         value = Integer.toString(counter);
-
-        //         statement.setString(1, key);    // 从1开始
-        //         statement.setString(2, value);
-        //         statement.setInt(3, j);
-
-        //         statement.addBatch();
-        //         if (counter % 1000 == 0) {
-        //             statement.executeBatch();
-        //             statement.clearBatch();
-        //         }
-        //         ++counter;
-        //     }      
-
-        // }
-        // statement.executeBatch();
-        // statement.clearBatch();
-
-        // statement.close();
-        // connection.close();
-
-        // System.out.println("成功添加" + counter + "条记录！");
 
     }
 }
