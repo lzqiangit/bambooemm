@@ -25,7 +25,7 @@ public class MakeData {
         sql = "insert into random values (?, ?, ?)";
         // int keyNum = 16384;
         int maxVolum = 30;
-        int n = (int)Math.pow(2, 22);
+        int n = (int)Math.pow(2, 16);
 
         int num = 0;
         int key_index = 0;

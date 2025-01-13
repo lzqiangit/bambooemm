@@ -1,5 +1,6 @@
 #include "utils.hpp"
 
+#define LIMIT 65536
 vector<int> LoadVolumn() {
     MYSQL *con = NULL;
     con = mysql_init(con);
@@ -20,7 +21,7 @@ vector<int> LoadVolumn() {
     }
 
 
-    mysql_query(con, "select count(*) from random group by `key`");
+    mysql_query(con, "select count(*) from random group by `key` limit 65536");
 
     MYSQL_RES *res;
     MYSQL_ROW row;
@@ -345,7 +346,7 @@ vector<KV *> LoadKVList(int &n, int &l) {
         cout << "Connect Database Error" << endl;
     }
 
-    mysql_query(con, "select * from random");
+    mysql_query(con, "select * from random limit 65536");
 
     MYSQL_RES *res;
     MYSQL_ROW row;
@@ -389,6 +390,8 @@ vector<KV *> LoadKVList(int &n, int &l) {
     }
     mysql_free_result(res);
     mysql_close(con);
+
+    cout << "MAX_VOLUMN_KEY: " << bkey << endl;
     return kvList;
 }
 

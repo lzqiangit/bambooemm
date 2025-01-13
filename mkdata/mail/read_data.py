@@ -1,15 +1,10 @@
-import numpy as np
-import time
 import os
-from scipy.sparse import csr_matrix
 import re
 import random
-import hmac
-import random
-from Crypto.Cipher import AES
 import pickle
-import string
-file_amount = 1000
+import mysql.connector
+
+file_amount = 100000
 
 
 stopWords = {'ourselves', 'hers', 'between', 'yourself', 'but', 'again', 'there', 'about', 'once', 'during', 'out',
@@ -38,7 +33,6 @@ def file_filter(file):
 # 深度优先搜索
 def files_from_dir(path, target_amount):
     files = []
-
     def dfs_dir(target_path):
         if len(files) == target_amount:
             return
@@ -57,6 +51,7 @@ def files_from_dir(path, target_amount):
     return files
 
 
+# 解析文件 获取文件中的所有关键字（剔除文件中的标点符号和非关键字）
 def file_parser(file):
     with open(file, 'r') as f:
         c = []
@@ -139,13 +134,6 @@ def get_corpus_from_dir(path, target_amount):
 
 
 # 获得1000个文件
-
-
-
-
-
-
-
 # 获得关键字到文件的列表
 def build_key_to_file_list(bv):
     Kw_File = dict()
@@ -169,18 +157,59 @@ def build_key_to_file_list(bv):
     for kw in Kw_File:
         if len(kw)<14:
             Kw_File_Use[kw]=Kw_File[kw]
-    # print("Kw_File_Use")
-    # print(Kw_File_Use)
     return Kw_File_Use
 
+# 保存到数据库
+def save_to_db(kvs):
+    # 建立连接
+    conn = mysql.connector.connect(
+        host="localhost",
+        user="lzq",
+        password="0000",
+        database="kvlist"
+    )
+
+    # 创建游标对象
+    cursor = conn.cursor()
+
+    # 删除所有数据
+    cursor.execute("delete from random where 1 = 1")
+    results = cursor.fetchall()
+    print(results)
+    
+    # 遍历字典，插入新的数据
+    sql = "INSERT INTO random VALUES (%s, %s, %s)"
+    data = []
+    
+    
+    for kw in Kw_File_Use:
+        # 将kw填充至20字节
+        pad_len = 20 - len(kw)
+        pad_kw = '*' * pad_len + kw
+        counter = 0
+        for j in Kw_File_Use[kw][1:]:
+            pad_len = 20 - len(j)
+            pad_j = '0' * pad_len + j
+            data.append((pad_kw, pad_j, counter))
+            counter += 1
+            if len(data) >= 10000:
+                cursor.executemany(sql, data)
+                data = []
+
+    # 批量插入数据
+    
+    # 提交事务 
+    conn.commit()
+
+    # 关闭游标和连接
+    cursor.close()
+    conn.close()
 
 addchennonce=st=os.urandom(16)    #生成16位byte
 addfileID='0000000000000000'
 
 addchennonce1=st=os.urandom(16)    #生成16位byte
 addfileID1='0000000000000000'
-
-
 
 #调用函数
 bv = get_corpus_from_dir("/home/lzq/data/maildir", file_amount)
@@ -202,21 +231,23 @@ for kw in Kw_File_Use:
     for j in Kw_File_Use[kw]:
         sum=sum+1
 
-print("sum",sum)
-print(Kw_File_Use['chen'])
-print(Kw_File_Use['zhang'])
 
+
+
+print("sum:{}, word:{}".format(sum, word))
+
+save_to_db(Kw_File_Use)
 
 f_Kw_File_Use=open('/home/lzq/data/Kw_File_Use.txt','wb')
 pickle.dump(Kw_File_Use, f_Kw_File_Use, 0)
 f_Kw_File_Use.close()
 print(len(Kw_File_Use['john']))
 
-print("word number: " + word)
+print("word number: " + str(word))
 # print(sum)
 
-a='zhang' in Kw_File_Use.keys()
-print(a)
+# a='zhang' in Kw_File_Use.keys()
+# print(a)
 
 
 ###########
