@@ -14,6 +14,10 @@ make
 ## 方案介绍
 初始化和插入时,将所有的key均按照存在最大容量个数的value填充至emm,对于value不存在(key|counter),value处填充enc(key|counter|0) 
 ## 待办
+
+##### Bug
+2^18 删除*************monique 
+
 ##### 测试
 - [x] 导入 Enron Email Dataset
 - [ ] Client端空间开销

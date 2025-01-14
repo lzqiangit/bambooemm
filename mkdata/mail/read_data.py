@@ -4,7 +4,9 @@ import random
 import pickle
 import mysql.connector
 
-file_amount = 100000
+file_amount = 20000
+kv_amount = 2 ** 20
+
 
 
 stopWords = {'ourselves', 'hers', 'between', 'yourself', 'but', 'again', 'there', 'about', 'once', 'during', 'out',
@@ -132,32 +134,39 @@ def get_corpus_from_dir(path, target_amount):
     # print("total:", len(cps))
     return cps[:target_amount]
 
-
-# 获得1000个文件
 # 获得关键字到文件的列表
 def build_key_to_file_list(bv):
     Kw_File = dict()
+    cur_kv_amount = 0
     for i, content_str in enumerate(bv):
         content_list = content_str.split()
+        cur_kv_amount += len(content_list)
         for content in content_list:
+            if len(content)>14:
+                cur_kv_amount -= 1
+                continue
             if content not in Kw_File:
                 Kw_File[content] = [str(i).zfill(16)]
             else:
                 Kw_File[content].append(str(i).zfill(16))
-
+        if cur_kv_amount >= kv_amount:
+            break
+    print("FINAL FILE INDEX:" + str(i))
+      
+    print("INSERT KV NUM:" + str(cur_kv_amount))
     #######################为每个kw生成一个nonce
-    kw_nonce={}
-    for kw in Kw_File:
-        st=os.urandom(16)    #生成16位byte
-        kw_nonce[kw]=st
-        Kw_File[kw].insert(0,kw_nonce[kw])
+    # kw_nonce={}
+    # for kw in Kw_File:
+    #     st=os.urandom(16)    #生成16位byte
+    #     kw_nonce[kw]=st
+    #     Kw_File[kw].insert(0,kw_nonce[kw])
 
     ####################真正使用的
-    Kw_File_Use={}
-    for kw in Kw_File:
-        if len(kw)<14:
-            Kw_File_Use[kw]=Kw_File[kw]
-    return Kw_File_Use
+    # Kw_File_Use={}
+    # for kw in Kw_File:
+    #     if len(kw)<14:
+    #         Kw_File_Use[kw]=Kw_File[kw]
+    return Kw_File
 
 # 保存到数据库
 def save_to_db(kvs):
@@ -187,17 +196,19 @@ def save_to_db(kvs):
         pad_len = 20 - len(kw)
         pad_kw = '*' * pad_len + kw
         counter = 0
-        for j in Kw_File_Use[kw][1:]:
+        for j in Kw_File_Use[kw]:
             pad_len = 20 - len(j)
             pad_j = '0' * pad_len + j
             data.append((pad_kw, pad_j, counter))
             counter += 1
-            if len(data) >= 10000:
+            if len(data) >= 50000:
                 cursor.executemany(sql, data)
                 data = []
+                # conn.commit()
 
     # 批量插入数据
-    
+    cursor.executemany(sql, data)
+    data = []
     # 提交事务 
     conn.commit()
 
@@ -215,8 +226,8 @@ addfileID1='0000000000000000'
 bv = get_corpus_from_dir("/home/lzq/data/maildir", file_amount)
 Kw_File_Use=build_key_to_file_list(bv)
 
-Kw_File_Use['chen']=[addchennonce,addfileID]
-Kw_File_Use['zhang']=[addchennonce1,addfileID1]
+# Kw_File_Use['chen']=[addchennonce,addfileID]
+# Kw_File_Use['zhang']=[addchennonce1,addfileID1]
 # print(Kw_File_Use)
 
 
@@ -241,7 +252,7 @@ save_to_db(Kw_File_Use)
 f_Kw_File_Use=open('/home/lzq/data/Kw_File_Use.txt','wb')
 pickle.dump(Kw_File_Use, f_Kw_File_Use, 0)
 f_Kw_File_Use.close()
-print(len(Kw_File_Use['john']))
+# print(len(Kw_File_Use['john']))
 
 print("word number: " + str(word))
 # print(sum)
