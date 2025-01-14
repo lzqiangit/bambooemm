@@ -24,8 +24,8 @@ public class MakeData {
         /*=========================== 设置生成随机数的参数 ===========================*/
         sql = "insert into random values (?, ?, ?)";
         // int keyNum = 16384;
-        int maxVolum = 30;
-        int n = (int)Math.pow(2, 16);
+        int maxVolum = (int)Math.pow(2, 9);
+        int n = (int)Math.pow(2, 18);
 
         int num = 0;
         int key_index = 0;

@@ -55,3 +55,8 @@ add_executable(demo demo.cpp)
 target_include_directories(demo PUBLIC ${HEADPATH} ${OPENSSL_INCLUDE_DIR})
 target_link_libraries(demo PUBLIC header utils hash ${OPENSSL_LIBRARIES})
 target_compile_options(demo PUBLIC "-mavx2")
+
+add_executable(time time.cpp)
+target_include_directories(time PUBLIC ${HEADPATH} ${OPENSSL_INCLUDE_DIR})
+target_link_libraries(time PUBLIC header utils hash ${OPENSSL_LIBRARIES})
+target_compile_options(time PUBLIC "-mavx2")

@@ -20,6 +20,7 @@
 #include "KV.hpp"
 #include "BOBHash.h"
 #include <ctime>
+#include <chrono>
 
 using namespace std;
 
@@ -29,6 +30,7 @@ using namespace std;
 
 typedef unsigned int uint32_t;
 typedef unsigned long int uint64_t;
+typedef chrono::_V2::system_clock::time_point time_point;
 
 
 /**
@@ -61,4 +63,7 @@ uint32_t GetYHash(uint32_t x, uint32_t st1);
 uint64_t getTimestamp();
 string getMemSizeStr(size_t size);
 
+// 获取精准的时间
+time_point getCurTimePoint();
+double getTimeDiff(time_point start, time_point end);
 #endif

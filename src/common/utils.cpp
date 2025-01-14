@@ -422,3 +422,12 @@ string getMemSizeStr(size_t size) {
         return to_string( (float)(size) / 1024.f / 1024.f ) + "MB" + "(" + to_string(size) + ")";
     }
 }
+
+time_point getCurTimePoint() {
+    return std::chrono::high_resolution_clock::now();
+}
+
+double getTimeDiff(time_point start, time_point end) {
+    std::chrono::duration<double, std::milli> duration = end - start; 
+    return duration.count();
+}
