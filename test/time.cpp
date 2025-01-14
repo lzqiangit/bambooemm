@@ -83,7 +83,7 @@ void ShowKVList(vector<KV> kvs) {
 
 void SaveToCSV(vector<pair<int, double>> timeList, string filename, string title) {
     ofstream outfile;
-    outfile.open("/home/lzq/code/AlalyseBEMMPerformance/csv/" + filename);
+    outfile.open("/home/lzq/code/bambooemm/analyse/csv/" + filename);
     outfile << title << endl;
     for (auto t : timeList) {
         outfile << t.first << "," << t.second << endl;
