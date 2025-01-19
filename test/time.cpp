@@ -39,7 +39,7 @@ void testBaseFun() {
 // 测试查询时间
 void testQueryTime() {
 
-    int MAX_KEY_INDEX = 997;
+    int MAX_KEY_INDEX = 4089;
     vector<pair<int, double>> timeList;
     string key;
     for (int i=0; i<=MAX_KEY_INDEX; i++) {
@@ -55,7 +55,7 @@ void testQueryTime() {
         // ShowKVList(kvs);
     }
 
-    SaveToCSV(timeList, "query_time.csv", "l,time");
+    SaveToCSV(timeList, "volumn_query_time_20_9.csv", "l,time");
 
     
 }
