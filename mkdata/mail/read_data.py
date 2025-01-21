@@ -5,7 +5,7 @@ import pickle
 import mysql.connector
 
 file_amount = 20000
-kv_amount = 2 ** 20
+kv_amount = 2 ** 22
 
 
 

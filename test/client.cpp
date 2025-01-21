@@ -390,6 +390,5 @@ void testGetTimeStamp() {
 }
 int main(int argc, char const *argv[])
 {
-    testGetTimeStamp();
     return 0;
 }

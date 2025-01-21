@@ -1,11 +1,13 @@
 package random;
 
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.util.Random;
 
-public class MakeData {
+/**
+ * 创建用于测试在不同键值对数量的数据下,最大容量l对查询时间的影响
+ */
+public class MakeNLData {
 
     public static void main(String[] args) throws Exception{
         
@@ -14,7 +16,6 @@ public class MakeData {
         String sql = "delete from random where 1 = 1";
         int executeUpdate = connection.createStatement().executeUpdate(sql);
         System.out.println("成功删除" + executeUpdate + "条记录");
-
         /********************* 随机生成记录 ********************/
         sql = "insert into random values (`key` ?, `value` ?);";
         PreparedStatement statement = null;
@@ -24,8 +25,8 @@ public class MakeData {
         /*=========================== 设置生成随机数的参数 ===========================*/
         sql = "insert into random values (?, ?, ?)";
         // int keyNum = 16384;
-        int maxVolum = (int)Math.pow(2, 9);
-        int n = (int)Math.pow(2, 20);
+        int maxVolum = (int)Math.pow(2, 13); // 7 9 11 13
+        int n = (int)Math.pow(2, 22);
 
         int num = 0;
         int key_index = 0;
@@ -34,12 +35,21 @@ public class MakeData {
         String key = null;
         String value = null;
         int counter = 0;
+        
+        boolean firstFlag = true;
+
         statement = connection.prepareStatement(sql);
         while (num < n) {
- 
-            do {
-                valueNum = random.nextInt(maxVolum);
-            } while (valueNum == 0);
+            
+            if (firstFlag) {
+                 valueNum = maxVolum-1;
+                 firstFlag = false;
+            } else {
+                do {
+                    valueNum = random.nextInt(maxVolum);
+                } while (valueNum == 0);
+            }
+            
             
             key = "key_" + key_index++;
 
@@ -77,5 +87,7 @@ public class MakeData {
         statement.close();
         connection.close();
         System.out.println("成功添加" + counter + "条记录！");
+        System.out.println("n:" + n + " l:" + maxVolum);
+        System.out.println("key_index:" + (key_index-1));
     }
 }

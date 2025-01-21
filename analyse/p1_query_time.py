@@ -1,7 +1,8 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-
+import matplotlib
+matplotlib.use("TkAgg")
 plt.rcParams['font.sans-serif'] = ['SimHei']  # 指定默认字体为黑体
 plt.rcParams['axes.unicode_minus'] = False  # 解决保存图像是负号'-'显示为方块的问题
 
@@ -52,34 +53,38 @@ slope, intercept = np.polyfit(x_22, y_22, 1)
 y_fit_22 =  [intercept + slope * xi for xi in x_22]
 
 # 2 ^ 16
-plt.subplot(1, 2, 1)
-plt.plot(x_16, y_fit_16, color='orange', label='拟合直线')
-plt.scatter(x_16[1:], y_16[1:], marker='.')
-plt.xlabel("Volume for a label")
-plt.ylabel('Time(ms)')
-# 显示网格
-plt.grid(True)
-plt.yticks(np.arange(5, 7.1, 0.2))
-plt.title("n = 2 ^ 16")
+# plt.subplot(1, 2, 1)
+# plt.plot(x_16, y_fit_16, color='orange', label='拟合直线')
+# plt.scatter(x_16[1:], y_16[1:], marker='.')
+# plt.xlabel("Volume for a label")
+# plt.ylabel('Time(ms)')
+# # 显示网格
+# plt.grid(True)
+# plt.yticks(np.arange(5, 7.1, 0.2))
+# plt.title("n = 2 ^ 16")
 
 # 2 ^ 18
-plt.subplot(1, 2, 2)
+plt.subplot(1, 2, 1)
 plt.plot(x_18, y_fit_18, color='orange', label='拟合直线')
 plt.scatter(x_18[1:], y_18[1:], marker='.')
 plt.xlabel("Volume for a label")
 plt.ylabel('Time(ms)')
 plt.grid(True)
 # y轴刻度精细化为0.2
-plt.yticks(np.arange(5, 7.1, 0.2))
-plt.title("n = 2 ^ 18")
+plt.yticks(np.arange(3.4, 7.1, 0.2))
+plt.title("n = $2^{18}$")
 
 # # 2 ^ 20
-# plt.subplot(2, 2, 3)
-# plt.plot(x_20, y_fit_20, color='orange', label='拟合直线')
-# plt.scatter(x_20[1:], y_20[1:], marker='.')
-# plt.xlabel("Maximum Volume for a label")
+plt.subplot(1, 2, 2)
+plt.plot(x_20, y_fit_20, color='orange', label='拟合直线')
+# 剔除y值大于7的y和y对应的x值
+
+plt.scatter(x_20[1:], y_20[1:], marker='.')
+plt.xlabel("Volume for a label")
 # plt.ylabel('Time(ms)')
-# plt.title("n = 2 ^ 20")
+plt.grid(True)
+plt.yticks(np.arange(3.4, 7.1, 0.2))
+plt.title("n = $2^{20}$")
 
 # # 2 ^ 22
 # plt.subplot(2, 2, 4)

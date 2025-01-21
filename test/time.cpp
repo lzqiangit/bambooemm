@@ -36,10 +36,10 @@ void testBaseFun() {
 }
 
 
-// 测试查询时间
-void testQueryTime() {
+// 测试不同n下面, 关键字的实际容量对查询时间的影响
+void testRealLAndQueryTime() {
 
-    int MAX_KEY_INDEX = 4089;
+    int MAX_KEY_INDEX = 4064;
     vector<pair<int, double>> timeList;
     string key;
     for (int i=0; i<=MAX_KEY_INDEX; i++) {
@@ -56,15 +56,36 @@ void testQueryTime() {
     }
 
     SaveToCSV(timeList, "volumn_query_time_20_9.csv", "l,time");
-
-    
 }
 
+// 测试平均的查询时间
+void tesAverageQuertyTime() {
+
+    int MAX_KEY_INDEX = 1023;
+    double sum = 0;
+    int times = 0;
+    string key;
+    for (int i=0; i<=MAX_KEY_INDEX; i++) {
+        key = "key_";
+        key += to_string(i);
+        key = string(20 - key.length(), 'p') + key;
+
+        auto star = getCurTimePoint();
+        vector<KV> kvs = client->Query(key.c_str());
+        auto end = getCurTimePoint();
+
+        sum += getTimeDiff(star, end);
+        times++;
+        // cout << getTimeDiff(star, end) << endl;
+        // ShowKVList(kvs);
+    }
+    cout << "平均查询时间: " << sum / times << endl;
+}
 
 int main() {
 
     Init();
-    testQueryTime();
+    tesAverageQuertyTime();
     return 0;
 }
 
