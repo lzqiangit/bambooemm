@@ -1,7 +1,7 @@
 #define BUCKETS_PER_SEG 7      // 10             越小碰撞概率越高
 #define MAX_CUCKOO_KICK 8       // 8    12: 1393 越大碰撞概率越高
 
-#define MIN_STAR_CAP 1024          // 4 * 2 ^ (BUCKETS_PER_SEG - 1)
+#define MIN_STAR_CAP 1024          // 4 * 2 ^ (BUCKETS_PER_SEG - 1) 最小初始容量
 
 // 指纹长度不能修改
 #define BITS_PER_TAG 12    

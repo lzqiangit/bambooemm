@@ -44,6 +44,7 @@ void BOBHash::initialize(uint32_t primeNum) {
 }
 
 uint32_t BOBHash::run(const void* buf, uint32_t len) {
+    // return xxh::xxhash<32>(buf, len);
     return BOBHash::run(buf, len, this->primeNum);
 }
 

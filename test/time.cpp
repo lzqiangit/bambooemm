@@ -3,6 +3,7 @@
 #include <thread>
 #include <chrono>
 #include "client.hpp"
+#include "Timer.hpp"
 using namespace std;
 
 void ShowKVList(vector<KV> kvs);
@@ -28,7 +29,11 @@ void Init() {
 void testBaseFun() {
     auto star = getCurTimePoint();
 
-    this_thread::sleep_for(std::chrono::seconds(1));
+    //this_thread::sleep_for(std::chrono::seconds(1));
+    int sum = 10;
+    for (int i=0; i<100; i++) {
+        sum += i;        
+    }
 
     auto end = getCurTimePoint();
 
@@ -61,29 +66,30 @@ void testRealLAndQueryTime() {
 // 测试平均的查询时间
 void tesAverageQuertyTime() {
 
-    int MAX_KEY_INDEX = 1023;
+    int MAX_KEY_INDEX = 1033;
     double sum = 0;
     int times = 0;
     string key;
-    for (int i=0; i<=MAX_KEY_INDEX; i++) {
+    //for (int i=0; i<=MAX_KEY_INDEX; i++) {
         key = "key_";
-        key += to_string(i);
+        key += to_string(1);
         key = string(20 - key.length(), 'p') + key;
 
-        auto star = getCurTimePoint();
+        Timer::getInstance().start();
         vector<KV> kvs = client->Query(key.c_str());
-        auto end = getCurTimePoint();
-
-        sum += getTimeDiff(star, end);
-        times++;
+        Timer::getInstance().stop();
+        //sum += getTimeDiff(star, end);
+        //times++;
         // cout << getTimeDiff(star, end) << endl;
         // ShowKVList(kvs);
-    }
+    //}
+    cout << "查询时间:" << Timer::getInstance().getDuration() << "ms" << endl;
     cout << "平均查询时间: " << sum / times << endl;
 }
 
 int main() {
 
+    // testBaseFun();
     Init();
     tesAverageQuertyTime();
     return 0;

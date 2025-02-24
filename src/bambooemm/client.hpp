@@ -5,15 +5,16 @@
 #include "utils.hpp"
 #include "predefine.h"
 #include "filterposition.hpp"
+#include "Timer.hpp"
 
 #include <unordered_map>
 #include <string>
 #include <sstream>
 
 
-#define ST_COALESCE_TIMES 0
-#define ST_SUBMIT_TIMES 1
-#define ST_MAX_VOLUME 2   
+#define ST_COALESCE_TIMES 0     // 融合次数
+#define ST_SUBMIT_TIMES 1       // 提交次数
+#define ST_MAX_VOLUME 2         // ？
 using std::pair;
 
 class Client
@@ -139,7 +140,8 @@ void Client::SetupEMM(vector<KV *> kvList, int n, int l)
         volumeNumArr[i] = 0;
     }
     setVolumeNumArrLength(volumeNumSize);
-    for (int i = 0; i < kvList.size(); i++)
+    // 插入初始元素
+    for (int i = 0; i < kvList.size(); i++)         // 考虑直接通过数据库来求得每个key的容量
     {
         this->bemm->SetupInsert(kvList.at(i)); // counter必须从0开始而且连续 yes
         if (i == kvList.size() - 1)
@@ -158,6 +160,11 @@ void Client::SetupEMM(vector<KV *> kvList, int n, int l)
     PaddingStep(maxCounterKVList, l);
     // 加密
     bemm->AddRandomAndEncrypt(LoadKey());
+    // 释放maxCounterKVList
+    for (KV *kv : maxCounterKVList)
+    {
+        delete kv;
+    }
 }
 
 /**
@@ -254,17 +261,17 @@ void Client::Update(char *key, char op, KV kcv) {
 
 vector<KV> Client::Query(const char *key) {
 
+    //cout << "开始调用的时间:" << Timer::getInstance().getDuration() << "ms" << endl;
     string hashKey = KV::MakeHashKey(key);
+    //cout << "生成HashKey的时间:" << Timer::getInstance().getDuration() << "ms" << endl;
     vector<ValueEntry> queryList;
     if (EMMst->find(key) != EMMst->end() && (*EMMst)[key][ST_MAX_VOLUME] > bemm->getMaxVolume()) {
         queryList = bemm->Query(hashKey, (*EMMst)[key][ST_MAX_VOLUME]);
     } else {
+        cout << "if判断结束的时间:" << Timer::getInstance().getDuration() << "ms" << endl;
         queryList = bemm->Query(hashKey);
     }
     vector< vector<KV> > resolueQuery;
-
-    // 
-
     uint32_t cnt = 0;
     if ( EMMst->find(key) != EMMst->end() ) {
         cnt = (*EMMst)[key][ST_SUBMIT_TIMES];
@@ -345,6 +352,7 @@ vector< vector<KV> > Client::Coalesce(const char *key, int cnt, vector<ValueEntr
                         map[kv.counter] = {i, j};
                         notEmptyNum++;
                 // 是填充值
+                // 因为 kcv 并不会严格按照 hash(hash(key)|counter) 的顺序存储, 而是仅仅保证其存储在该key对应的l给entry的某一个元素中
                 // - 在扩展l中, 可能出现两个同一counter的值, 填充值一定在末尾, 如果下前面找到了相同的counter值,一定要将前面的值移动到此处 
                 // 没有找到,正常构建索引即可
                     } else if (map.find(i) != map.end()) {

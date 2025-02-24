@@ -6,11 +6,14 @@
 #include <string>
 #include <cstring>
 #include <vector>
+#include "Timer.hpp"
+#include <iostream>
 
 typedef unsigned int uint32_t;
 using std::string;
 using std::__cxx11::to_string;
 using std::vector;
+using std::cout;
 
 
 class KV
@@ -162,6 +165,7 @@ public:
     static string MakeHashKey(const char *key) {
 
         uint32_t hash_key = BOBHash::run(key, strlen(key), 3);
+        cout << "BobHash:" << Timer::getInstance().getDuration() << "\n";
         string keyStr = to_string(hash_key);
         return keyStr;
     }

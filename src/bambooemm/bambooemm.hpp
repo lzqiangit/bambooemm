@@ -11,6 +11,7 @@
 #include "UpdataEntry.hpp"
 #include <vector>
 #include <unordered_map>
+#include "Timer.hpp"
 
 #define DEFAULT_EMMU_SIZE 4096
 
@@ -142,11 +143,14 @@ vector<ValueEntry> BambooEMM::Query(string hashKey)
     uint32_t seg_index, bucket_index, tag;
     for (int i = 0; i < max_volume; i++)
     {
+        cout << "生成加密关键字前:" << Timer::getInstance().getDuration() << "ms" << endl;
         char *hashKey_counter = KV::MakeSearchKey(hashKey, i);            // 这个逻辑移动至Client中!!!
+        cout << "生成加密关键字:" << Timer::getInstance().getDuration() << "ms" << endl;
         ValueEntry valueE;
         bf->Lookup(hashKey_counter, valueE);
+        cout << "查询一个关键字:" << Timer::getInstance().getDuration() << "ms" << endl;
         ret.push_back(valueE);
-
+        //break;
     }
     return ret;
 }
@@ -164,7 +168,6 @@ vector<ValueEntry> BambooEMM::Query(string hashKey, int l)
         ValueEntry valueE;
         bf->Lookup(hashKey_counter, valueE);
         ret.push_back(valueE);
-
     }
     return ret;
 }
