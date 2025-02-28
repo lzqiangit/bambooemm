@@ -138,6 +138,9 @@ bool BambooFilter::Insert(const char *key, ValueEntry valueE)
     return true;
 }
 
+/**
+ * key : xxHash(key) || counter
+ */
 bool BambooFilter::Lookup(const char *key, ValueEntry &valueE)
 {
     uint32_t seg_index, bucket_index, tag;

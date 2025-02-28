@@ -57,7 +57,7 @@ public:
 
     bool Setup(int split_condition_param, int n, uint32_t l);
     //bool LoadMM(vector<KV *> mm);
-    bool SetupInsert(KV *kv);
+    bool SetupInsert(KV *kv, uint32_t K);
 
     
     /**
@@ -112,12 +112,12 @@ bool BambooEMM::Setup(int split_condition_param, int n, uint32_t l)
 /**
  * 用于初始化时调用, 此时为明文状态
  */
-bool BambooEMM::SetupInsert(KV *kv)
+bool BambooEMM::SetupInsert(KV *kv, uint32_t K)
 {
 
     uint32_t seg_index, bucket_index, tag;
 
-    char *key_counter = kv->QueryKey();
+    char *key_counter = kv->QueryKey(K);
     char *kcv = kv->Splice();    // 现在kvc没有长度限制了!
     ValueEntry valueE;
     bool ret;
@@ -143,12 +143,12 @@ vector<ValueEntry> BambooEMM::Query(string hashKey)
     uint32_t seg_index, bucket_index, tag;
     for (int i = 0; i < max_volume; i++)
     {
-        cout << "生成加密关键字前:" << Timer::getInstance().getDuration() << "ms" << endl;
+        //cout << "生成加密关键字前:" << Timer::getInstance().getDuration() << "ms" << endl;
         char *hashKey_counter = KV::MakeSearchKey(hashKey, i);            // 这个逻辑移动至Client中!!!
-        cout << "生成加密关键字:" << Timer::getInstance().getDuration() << "ms" << endl;
+        //cout << "生成加密关键字:" << Timer::getInstance().getDuration() << "ms" << endl;
         ValueEntry valueE;
         bf->Lookup(hashKey_counter, valueE);
-        cout << "查询一个关键字:" << Timer::getInstance().getDuration() << "ms" << endl;
+        //cout << "查询一个关键字:" << Timer::getInstance().getDuration() << "ms" << endl;
         ret.push_back(valueE);
         //break;
     }

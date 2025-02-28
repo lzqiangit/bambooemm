@@ -9,6 +9,8 @@
 #include "Timer.hpp"
 #include <iostream>
 
+#include <xxhash.h>
+
 typedef unsigned int uint32_t;
 using std::string;
 using std::__cxx11::to_string;
@@ -23,73 +25,59 @@ public:
     char *value;
     int counter;
 
-    KV(string keyStr, int counter, string valStr) {
+    KV() {
+        key = nullptr;
+        value = nullptr;
+        counter = 0;
+    }
+
+    /**
+     * 构建一个KV，传入key,counter和value
+     * 注意构造kv后后对key和value的释放
+     */
+    KV(const char* key, int counter, const char* value) {
+        this->key = strdup(key);
+        this->value = strdup(value);
         this->counter = counter;
-        int keyLen = keyStr.length();
-        int valLen = valStr.length();
-        key = new char[keyLen + 1];
-        value = new char[valLen + 1];
-        memset(key, 0, keyLen + 1);
-        memset(value, 0, valLen + 1);
-        memcpy(key, (char*)keyStr.c_str(), keyLen);
-        memcpy(value, (char*)valStr.c_str(), valLen + 1);
     }
 
     /**
      * 构建一个填充KV
      */
-    KV(char *key, int counter) {
-        this->key = new char[strlen(key) + 1];
-        memset(this->key, 0, strlen(key) + 1);
-        memcpy(this->key, key, strlen(key));
+    KV(const char *key, int counter) {
+        this->key = strdup(key);
         this->counter = counter;
         this->value = nullptr;
         BePadding();
     }
 
-    KV(char *key, char *value, int counter)
-    {
-        this->key = new char[strlen(key) + 1];
-        memset(this->key, 0, strlen(key) + 1);
-        memcpy(this->key, key, strlen(key));
-
-        this->value = new char[strlen(value) + 1];
-        memset(this->value, 0, strlen(value) + 1);
-        memcpy(this->value, value, strlen(value));
-        this->counter = counter;
-    }
     ~KV()
     {
         delete key;
         delete value;
     }
 
-    KV(char *kcv) {
-        string spliceValueStr = kcv;
-        int star = 0;
-        int end = spliceValueStr.find('|');
-        string substring = spliceValueStr.substr(star, end - star);
-        key = copy_const_str(substring.c_str());
-
-        star = end + 1;
-        end = spliceValueStr.find('|', star);
-        char *counterCStr = copy_const_str(spliceValueStr.substr(star, end - star).c_str());
-        counter = atoi(counterCStr);
-
-        star = end + 1;
-        end = spliceValueStr.length();
-        value = copy_const_str(spliceValueStr.substr(star, end - star).c_str());
+    /**
+     * 从key|counter|val的字符串中导入kv
+     * 首先以 | 分割，key为第一个，counter为第二个，value为第三个
+     * 注意counter需要转化为整形
+     */
+    KV(char *kcv) { 
+        char *key = strtok(kcv, "|");
+        char *counter = strtok(nullptr, "|");
+        char *value = strtok(nullptr, "|");
+        this->key = strdup(key);
+        this->value = strdup(value);
+        this->counter = atoi(counter);
     }
 
+    /**
+     * 拷贝构造函数
+     * 深拷贝
+     */
     KV(const KV& others) {
-        char *keyo = others.key;
-        char *valueo = others.value;
-        this->key = new char[ strlen(keyo) + 1 ];
-        this->value = new char[ strlen(valueo) + 1 ];
-        memset(this->key, 0, strlen(keyo) + 1);
-        memset(this->value, 0, strlen(valueo) + 1);
-        memcpy(this->key, keyo, strlen(keyo));
-        memcpy(this->value, valueo, strlen(valueo));
+        this->key = strdup(others.key);
+        this->value = strdup(others.value);
         this->counter = others.counter;
     }
 
@@ -100,39 +88,36 @@ public:
         if (this->value != nullptr) {
             delete []this->value;
         }
-        char *keyo = others.key;
-        char *valueo = others.value;
-        this->key = new char[ strlen(keyo) + 1 ];
-        this->value = new char[ strlen(valueo) + 1 ];
-        memset(this->key, 0, strlen(keyo) + 1);
-        memset(this->value, 0, strlen(valueo) + 1);
-        memcpy(this->key, keyo, strlen(keyo));
-        memcpy(this->value, valueo, strlen(valueo));
+        this->key = strdup(others.key);
+        this->value = strdup(others.value);
         this->counter = others.counter;
         return *this;
     }
 
     /**
-     * 获取kcv的拼接 key|counter|value
+     * 将成员变量以 key|counter|value 的形式拼接成字符串
      */
     char *Splice() {
-        string keyStr = key;
-        string valueStr = value;
-        int len = keyStr.length() + valueStr.length() + LenOfInt(counter) + 2;
-        int padLen = 0;
-        string ret = keyStr + '|' + to_string(counter) + "|" + valueStr;        // + "|" + RandomNumStr(RANDOM_NUM_LEN, retRandom)   
-        int retLen = ret.length();
-        char *retCStr = new char[retLen + 1];
-        memset(retCStr, 0, retLen + 1);
-        memcpy(retCStr, (char *)ret.c_str(), retLen);
-        return retCStr;
+        int keyLen = strlen(this->key);
+        int valueLen = strlen(this->value);
+        int counterLen = LenOfInt(this->counter);
+        int totalLen = keyLen + valueLen + counterLen + 2;
+        char *ret = new char[totalLen + 1];
+        memset(ret, 0, totalLen + 1);
+        memcpy(ret, this->key, keyLen);
+        ret[keyLen] = '|';
+        // 使用sprintf将counter拼接到ret中
+        sprintf(ret + keyLen + 1, "%d", this->counter);
+        ret[keyLen + 1 + counterLen] = '|';
+        memcpy(ret + keyLen + 1 + counterLen + 1, this->value, valueLen);
+        return ret;
     }
 
     /**
      * 获取其向服务端发送查询请求所需的key <- hash(key)|counter
      */
-    char *QueryKey() {
-        return MakeSearchKey(MakeHashKey(this->key), this->counter);
+    char *QueryKey(uint32_t K) {
+        return MakeSearchKey(MakeHashKey(this->key, K), this->counter);
     }
 
     /**
@@ -140,32 +125,29 @@ public:
      */
     void BePadding() {
         if (this->value != nullptr)    delete[] this->value;
-        this->value = new char[2];
-        memset(this->value, 0, 2);
-        sprintf(this->value, "P");
+        this->value = strdup("P");
     }
 
     bool isPadding() {
         return (strlen(this->value) == 1 && this->value[0] == 'P'); 
     }
 
-    void setValue(char *newValue) {
-        int newLen = strlen(newValue);
+    void setValue(const char *newValue) {
         if (this->value != nullptr) {
             delete[] this->value;
         }
-        this->value = new char[newLen + 1];
-        memset(this->value, 0, newLen + 1);
-        memcpy(this->value, newValue, newLen);
+        this->value = strdup(newValue);
     }
 
     /**
-     * 求key的哈希值
+     * 求key的xxHash哈希值
      */
-    static string MakeHashKey(const char *key) {
+    static string MakeHashKey(const char *key, uint32_t K) {
 
-        uint32_t hash_key = BOBHash::run(key, strlen(key), 3);
-        cout << "BobHash:" << Timer::getInstance().getDuration() << "\n";
+        //uint32_t hash_key = BOBHash::run(key, strlen(key), 3);
+        //cout << "HashBefore:" << Timer::getInstance().getDuration() << "\n";
+        uint32_t hash_key = XXH32(key, strlen(key), K);
+        //cout << "HashEnd:" << Timer::getInstance().getDuration() << "\n";
         string keyStr = to_string(hash_key);
         return keyStr;
     }

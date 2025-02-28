@@ -6,15 +6,13 @@ public:
     static const int MAX_PRIME = 1229;
     BOBHash();
     ~BOBHash();
-    BOBHash(uint32_t primeNum);
 
-    void initialize(uint32_t primeNum);
 
-    uint32_t run(const void* buf, uint32_t len);
+    static uint32_t run(const void* buf, uint32_t len);
     static uint32_t run(const void* buf, uint32_t len, uint32_t primeNum);
 
 private:
-    uint32_t primeNum;
+    static const uint32_t primeNum = 3;
 
     static constexpr uint32_t prime[MAX_PRIME] = {
             2,    3,    5,    7,    11,   13,   17,   19,   23,   29,   31,

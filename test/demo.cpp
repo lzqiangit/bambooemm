@@ -93,14 +93,14 @@ int main(int argc, char const *argv[])
         case 'i':
             keyStr = InputStr("key");
             valStr = InputStr("value");
-            kcv = new KV(keyStr, PADDING_COUNTER, valStr);
+            kcv = new KV(keyStr.c_str(), PADDING_COUNTER, valStr.c_str());
             client->Update((char*)keyStr.c_str() , OP_INSERT, *kcv);
             break;
         case 'D':
         case 'd':
             keyStr = InputStr("key");
             counter = InputNum("counter");
-            kcv = new KV(keyStr, counter, PADDING_VALUE);
+            kcv = new KV(keyStr.c_str(), counter, PADDING_VALUE);
             client->Update((char*)keyStr.c_str(), OP_DELETE, *kcv);
             break;
         case 'E':
@@ -108,7 +108,7 @@ int main(int argc, char const *argv[])
             keyStr = InputStr("key");
             counter = InputNum("counter");
             valStr = InputStr("value");
-            kcv = new KV((char*)keyStr.c_str(), counter, valStr);
+            kcv = new KV(keyStr.c_str(), counter, valStr.c_str());
             client->Update((char*)keyStr.c_str(), OP_EDIT, *kcv);
             break;
         case 'C':

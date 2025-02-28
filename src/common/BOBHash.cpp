@@ -32,20 +32,11 @@
     }
 
 BOBHash::BOBHash() {
-    this->primeNum = 0;
-}
-
-BOBHash::BOBHash(uint32_t primeNum) {
-    this->primeNum = primeNum;
-}
-
-void BOBHash::initialize(uint32_t primeNum) {
-    this->primeNum = primeNum;
 }
 
 uint32_t BOBHash::run(const void* buf, uint32_t len) {
     // return xxh::xxhash<32>(buf, len);
-    return BOBHash::run(buf, len, this->primeNum);
+    return BOBHash::run(buf, len, BOBHash::primeNum);
 }
 
 uint32_t BOBHash::run(const void* buf, uint32_t len, uint32_t primeNum) {

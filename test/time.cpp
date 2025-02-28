@@ -10,11 +10,10 @@ void ShowKVList(vector<KV> kvs);
 void SaveToCSV(vector<pair<int, double>> timeList, string filename, string title);
 
 int n, l;
-vector<KV *> kvList;
 Client *client;
 
 void Init() {
-    
+    vector<KV *> kvList;
     cout << "导入数据..." << endl;
     kvList = LoadKVList(n, l);
     cout << "成功导入!!! (" << n << "条数据" << ",最大容量为:" << l << ")"<< endl;
@@ -23,45 +22,49 @@ void Init() {
     client = new Client();
     client->SetupEMM(kvList, n, l);
     cout << "初始化完成!!!" << endl;
+    // 清除kvList
+    for (auto kv : kvList) {
+        delete kv;
+    }
 }
 
 // 测试获取时间戳和计算时间差的函数
-void testBaseFun() {
-    auto star = getCurTimePoint();
+// void testBaseFun() {
+//     auto star = getCurTimePoint();
 
-    //this_thread::sleep_for(std::chrono::seconds(1));
-    int sum = 10;
-    for (int i=0; i<100; i++) {
-        sum += i;        
-    }
+//     //this_thread::sleep_for(std::chrono::seconds(1));
+//     int sum = 10;
+//     for (int i=0; i<100; i++) {
+//         sum += i;        
+//     }
 
-    auto end = getCurTimePoint();
+//     auto end = getCurTimePoint();
 
-    cout << getTimeDiff(star, end) << endl;
-}
+//     cout << getTimeDiff(star, end) << endl;
+// }
 
 
-// 测试不同n下面, 关键字的实际容量对查询时间的影响
-void testRealLAndQueryTime() {
+// // 测试不同n下面, 关键字的实际容量对查询时间的影响
+// void testRealLAndQueryTime() {
 
-    int MAX_KEY_INDEX = 4064;
-    vector<pair<int, double>> timeList;
-    string key;
-    for (int i=0; i<=MAX_KEY_INDEX; i++) {
-        key = "key_";
-        key += to_string(i);
-        key = string(20 - key.length(), 'p') + key;
-        auto star = getCurTimePoint();
-        vector<KV> kvs = client->Query(key.c_str());
-        auto end = getCurTimePoint();
+//     int MAX_KEY_INDEX = 4064;
+//     vector<pair<int, double>> timeList;
+//     string key;
+//     for (int i=0; i<=MAX_KEY_INDEX; i++) {
+//         key = "key_";
+//         key += to_string(i);
+//         key = string(20 - key.length(), 'p') + key;
+//         auto star = getCurTimePoint();
+//         vector<KV> kvs = client->Query(key.c_str());
+//         auto end = getCurTimePoint();
 
-        timeList.push_back(make_pair(kvs.size(), getTimeDiff(star, end)));
-        // cout << getTimeDiff(star, end) << endl;
-        // ShowKVList(kvs);
-    }
+//         timeList.push_back(make_pair(kvs.size(), getTimeDiff(star, end)));
+//         // cout << getTimeDiff(star, end) << endl;
+//         // ShowKVList(kvs);
+//     }
 
-    SaveToCSV(timeList, "volumn_query_time_20_9.csv", "l,time");
-}
+//     SaveToCSV(timeList, "volumn_query_time_20_9.csv", "l,time");
+// }
 
 // 测试平均的查询时间
 void tesAverageQuertyTime() {
@@ -75,6 +78,7 @@ void tesAverageQuertyTime() {
         key += to_string(1);
         key = string(20 - key.length(), 'p') + key;
 
+        cout << "开始" << endl;
         Timer::getInstance().start();
         vector<KV> kvs = client->Query(key.c_str());
         Timer::getInstance().stop();
@@ -92,6 +96,7 @@ int main() {
     // testBaseFun();
     Init();
     tesAverageQuertyTime();
+    delete client;
     return 0;
 }
 

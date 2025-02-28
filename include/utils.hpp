@@ -22,6 +22,7 @@
 #include <ctime>
 #include <chrono>
 
+
 using namespace std;
 
 #define AES_BLOCK_SIZE 16  //  
@@ -38,7 +39,7 @@ typedef chrono::_V2::system_clock::time_point time_point;
  */
 int LenOfInt(int num);
 int LenOfUInt(uint32_t num);
-unsigned char* ItoUCStr(int num);
+
 
 void GenKey(int level);
 char* LoadKey();
@@ -63,7 +64,7 @@ uint32_t GetYHash(uint32_t x, uint32_t st1);
 uint64_t getTimestamp();
 string getMemSizeStr(size_t size);
 
-// 获取精准的时间
-time_point getCurTimePoint();
-double getTimeDiff(time_point start, time_point end);
+// 拼接char*字符串
+char* concat(char delim, const char* first, ...);
+// 
 #endif

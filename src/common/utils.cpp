@@ -362,32 +362,28 @@ vector<KV *> LoadKVList(int &n, int &l) {
     n = 0;
     l = 0;
     int tempL = 0;
-    char *bkey = nullptr;
+    char bkey[100] = "THIS_IS_NOT_A_NORMAL_KEY";
     while( (row = mysql_fetch_row(res)) != nullptr)
     {
         ++n;
-        char *key = new char[(strlen(row[0]) + 1)];
-        char *value = new char[(strlen(row[1]) + 1)];
-        strcpy(key, row[0]);
-        strcpy(value, row[1]);
+        char *key = strdup(row[0]);
+        char *value = strdup(row[1]);
 
-        if(bkey == nullptr) {
-            bkey = key;
-        }
-
-        string max_volumn_key;
         if ( strcmp(key, bkey) != 0 ) {
             l = max(l, tempL);
             tempL = 1;
-            bkey = key;
+            // 将bkey的值赋为key
+            memcpy(bkey, key, strlen(key) + 1);
         } else {
             ++tempL;
         }
         
 
-
-        KV *kv = new KV(key, value, stoi(string(row[2])));
+        KV *kv = new KV(key, stoi(string(row[2])),value);
         kvList.push_back(kv);
+
+        delete[] key;
+        delete[] value;
     }
     mysql_free_result(res);
     mysql_close(con);
@@ -423,11 +419,45 @@ string getMemSizeStr(size_t size) {
     }
 }
 
-time_point getCurTimePoint() {
-    return std::chrono::high_resolution_clock::now();
-}
+/**
+ * strs: 需要拼接的字符串数组
+ * delim: 分隔符
+ */
 
-double getTimeDiff(time_point start, time_point end) {
-    std::chrono::duration<double, std::milli> duration = end - start; 
-    return duration.count();
+
+ char* concat(char delim, const char* first, ...) {
+    va_list args;
+    va_start(args, first);
+
+    // 计算总长度
+    size_t total_length = strlen(first);
+    const char* s;
+    int count = 1;
+
+    while ((s = va_arg(args, const char*)) != nullptr) {
+        total_length += strlen(s) + 1; // +1 为分隔符
+        count++;
+    }
+    va_end(args);
+
+    // 分配内存
+    char* buffer = new char[total_length + 1];
+    char* current = buffer;
+
+    // 拼接第一个字符串
+    strcpy(current, first);
+    current += strlen(first);
+
+    // 拼接剩余字符串
+    va_start(args, first);
+    for (int i = 1; i < count; ++i) {
+        *current++ = delim;
+        s = va_arg(args, const char*);
+        strcpy(current, s);
+        current += strlen(s);
+    }
+    va_end(args);
+
+    *current = '\0';
+    return buffer;
 }

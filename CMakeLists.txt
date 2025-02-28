@@ -8,7 +8,7 @@ set(CMAKE_EXE_LINKER_FLAGS "-lpthread ${CMAKE_EXE_LINKER_FLAGS}")
 set(CMAKE_CXX_FLAGS "-fpermissive ${CMAKE_CXX_FLAGS}")      # -fsanitize=address -fno-omit-frame-pointer
 set(CMAKE_BUILD_TYPE "Debug")
 # set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/lib)      # ���ÿ�����ɵ�ַ
-set(XXHASH_LIB "/usr/lib/x86_64-linux-gnu/libxxhash.so")
+set(XXHASH_LIB "/usr/lib/x86_64-linux-gnu/libxxhash.a")
 
 set(HEADPATH ${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/src/bamboofilter ${PROJECT_SOURCE_DIR}/src/bambooemm)
 

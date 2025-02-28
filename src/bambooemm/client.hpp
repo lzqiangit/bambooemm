@@ -11,7 +11,6 @@
 #include <string>
 #include <sstream>
 
-
 #define ST_COALESCE_TIMES 0     // 融合次数
 #define ST_SUBMIT_TIMES 1       // 提交次数
 #define ST_MAX_VOLUME 2         // ？
@@ -23,7 +22,8 @@ private:
     /* data */
     int n;
     BambooEMM *bemm;
-    uint32_t K, Ku;   // 种子
+    const uint32_t K = 123456;
+    const uint32_t Ku = 654321;
     unordered_map<string, uint32_t*>  *EMMst;       // 分别存储
     /**
      * 变大 -> 没啥问题
@@ -91,8 +91,6 @@ private:
 Client::Client(/* args */)
 {
     EMMst = new unordered_map<string, uint32_t*>();
-    K = 3;
-    Ku = 3;
 }
 
 Client::~Client()
@@ -143,7 +141,7 @@ void Client::SetupEMM(vector<KV *> kvList, int n, int l)
     // 插入初始元素
     for (int i = 0; i < kvList.size(); i++)         // 考虑直接通过数据库来求得每个key的容量
     {
-        this->bemm->SetupInsert(kvList.at(i)); // counter必须从0开始而且连续 yes
+        this->bemm->SetupInsert(kvList.at(i), K); // counter必须从0开始而且连续 yes
         if (i == kvList.size() - 1)
         {
             maxCounterKVList.push_back(kvList.at(i));
@@ -161,10 +159,6 @@ void Client::SetupEMM(vector<KV *> kvList, int n, int l)
     // 加密
     bemm->AddRandomAndEncrypt(LoadKey());
     // 释放maxCounterKVList
-    for (KV *kv : maxCounterKVList)
-    {
-        delete kv;
-    }
 }
 
 /**
@@ -182,9 +176,9 @@ void Client::PaddingStep(vector<KV *> kvList, int l)
         for (int i = counter; i < l; i++)
         {
             KV *kv = new KV(key, ++counter);
-            if (!(this->bemm->isExistKeyCounter(KV::MakeHashKey(key), kv->counter)))
+            if (!(this->bemm->isExistKeyCounter(KV::MakeHashKey(key, K), kv->counter)))
             {
-                this->bemm->SetupInsert(kv);
+                this->bemm->SetupInsert(kv, K);
             }
             else
             {
@@ -217,14 +211,15 @@ BambooEMM *Client::getBEMM()
  */
 void Client::EncryptAndUpload(const char *key, int counter, ValueEntry valueE, int preRandom)
 {
-    char *searchKey = KV::MakeSearchKey(KV::MakeHashKey(key), counter);
+    string hashKey = KV::MakeHashKey(key, K);
+    char *searchKey = KV::MakeSearchKey(hashKey, counter);
     valueE.SpliceRandom(preRandom);
     valueE.Enc(LoadKey());
-    string hashKey = KV::MakeHashKey(key);
+    
     if (bemm->isExistKeyCounter(hashKey, counter)) {
         bemm->ReInsert(searchKey, valueE);
     } else {
-        bemm->Insert(KV::MakeHashKey(key), counter, valueE);
+        bemm->Insert(hashKey, counter, valueE);
     }
 }
 
@@ -262,14 +257,15 @@ void Client::Update(char *key, char op, KV kcv) {
 vector<KV> Client::Query(const char *key) {
 
     //cout << "开始调用的时间:" << Timer::getInstance().getDuration() << "ms" << endl;
-    string hashKey = KV::MakeHashKey(key);
+    string hashKey = KV::MakeHashKey(key, K);
     //cout << "生成HashKey的时间:" << Timer::getInstance().getDuration() << "ms" << endl;
     vector<ValueEntry> queryList;
     if (EMMst->find(key) != EMMst->end() && (*EMMst)[key][ST_MAX_VOLUME] > bemm->getMaxVolume()) {
         queryList = bemm->Query(hashKey, (*EMMst)[key][ST_MAX_VOLUME]);
     } else {
-        cout << "if判断结束的时间:" << Timer::getInstance().getDuration() << "ms" << endl;
+        //cout << "if判断结束的时间:" << Timer::getInstance().getDuration() << "ms" << endl;
         queryList = bemm->Query(hashKey);
+        //cout << "Query完成时间:" << Timer::getInstance().getDuration() << "ms" << endl;
     }
     vector< vector<KV> > resolueQuery;
     uint32_t cnt = 0;
