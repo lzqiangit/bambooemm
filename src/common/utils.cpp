@@ -1,15 +1,19 @@
 #include "utils.hpp"
+#include "KV.hpp"
+#include "xxhash.h"
 
 #define LIMIT 65536
-vector<int> LoadVolumn() {
+vector<int> LoadVolumn()
+{
     MYSQL *con = NULL;
     con = mysql_init(con);
     if (con == NULL)
     {
-        cout << "Init Connect ERROR" << endl;;
+        cout << "Init Connect ERROR" << endl;
+        ;
     }
-    string url = "127.0.0.1";    
-    unsigned int Port = 3306;  
+    string url = "127.0.0.1";
+    unsigned int Port = 3306;
     string User = "lzq";
     string PassWord = "0000";
     string DBName = "kvlist";
@@ -20,27 +24,26 @@ vector<int> LoadVolumn() {
         cout << "Connect Database Error" << endl;
     }
 
-
     mysql_query(con, "select count(*) from random group by `key`");
 
     MYSQL_RES *res;
     MYSQL_ROW row;
     res = mysql_use_result(con);
-    const char * csname = "utf8";
+    const char *csname = "utf8";
     mysql_set_character_set(con, csname);
 
-    int nums = 0;  
-    nums = mysql_num_fields(res); 
+    int nums = 0;
+    nums = mysql_num_fields(res);
 
-    MYSQL_FIELD * fields;
+    MYSQL_FIELD *fields;
     vector<int> volumeList;
 
     int tempL = 0;
     char *bkey = nullptr;
-    while( (row = mysql_fetch_row(res)) != nullptr) 
+    while ((row = mysql_fetch_row(res)) != nullptr)
     {
         char *volum = new char[(strlen(row[0]) + 1)];
-    
+
         strcpy(volum, row[0]);
 
         volumeList.push_back(atoi(volum));
@@ -50,110 +53,132 @@ vector<int> LoadVolumn() {
     return volumeList;
 }
 
-
-int LenOfInt(int num) {
+int LenOfInt(int num)
+{
     int len = 1;
-    while (num >= 10) {
+    while (num >= 10)
+    {
         ++len;
         num /= 10;
     }
     return len;
 }
 
-int LenOfUInt(uint32_t num) {
+int LenOfUInt(uint32_t num)
+{
     int len = 1;
-    while (num >= 10) {
+    while (num >= 10)
+    {
         ++len;
         num /= 10;
     }
     return len;
 }
 
-void GenKey(int level) {
+void GenKey(int level)
+{
     // string str = "very nice day!";
     string keyStr = "testkey";
-    const char* key = keyStr.c_str();      // (unsigned char*)str.c_str();// AESGen(level);
+    const char *key = keyStr.c_str(); // (unsigned char*)str.c_str();// AESGen(level);
     ofstream outFile("/home/lzq/bemmkey/KI.bin", std::ios::binary);
-    if (!outFile) {
+    if (!outFile)
+    {
         std::cerr << "Error writing file." << std::endl;
         return;
     }
 
-    outFile.write((char*)key, strlen((char*)key));
+    outFile.write((char *)key, strlen((char *)key));
     outFile.close();
 }
 
-char* LoadKey() {
+const char *LoadKey()
+{
 
     std::ifstream file("/home/lzq/bemmkey/KI.bin", std::ios::binary | std::ios::ate);
-    if (file.is_open()) {
+    if (file.is_open())
+    {
         std::streamsize fileSize = file.tellg();
         file.seekg(0, std::ios::beg);
 
-        char* buffer = new char[fileSize + 1];
+        char *buffer = new char[fileSize + 1];
         memset(buffer, 0, fileSize + 1);
-        if (file.read( (char*) buffer, fileSize)) {
+        if (file.read((char *)buffer, fileSize))
+        {
             file.close();
             return buffer;
-        } else {
+        }
+        else
+        {
             std::cerr << "Error reading file." << std::endl;
             file.close();
             delete[] buffer;
             return nullptr;
         }
-    } else {
+    }
+    else
+    {
         std::cerr << "Unable to open file for reading." << std::endl;
         return nullptr;
     }
 }
 
-void printBinary(char* data, size_t length) {
-    for (size_t i = 0; i < length; ++i) {
-        for (int j = 7; j >= 0; --j) {
+void printBinary(char *data, size_t length)
+{
+    for (size_t i = 0; i < length; ++i)
+    {
+        for (int j = 7; j >= 0; --j)
+        {
             std::cout << ((data[i] >> j) & 1);
         }
         std::cout << " "; //
     }
     std::cout << endl;
-    
 }
 
-uint32_t get_value_id(const char* value) {  
+uint32_t get_value_id(const char *value)
+{
     string input = value;
-    // 
-    std::size_t pos = input.rfind('_');  
-    if (pos == std::string::npos || pos == input.size() - 1) {  
-        throw std::invalid_argument("Invalid input string format");  
-    }  
-      
-    std::string idStr = input.substr(pos + 1);  
-    // 
-    uint32_t id;  
-    std::istringstream iss(idStr);  
-    if (!(iss >> id)) {  
-        throw std::invalid_argument("Failed to convert id to unsigned int");  
-    }  
-      
-    return id;  
+    //
+    std::size_t pos = input.rfind('_');
+    if (pos == std::string::npos || pos == input.size() - 1)
+    {
+        throw std::invalid_argument("Invalid input string format");
+    }
+
+    std::string idStr = input.substr(pos + 1);
+    //
+    uint32_t id;
+    std::istringstream iss(idStr);
+    if (!(iss >> id))
+    {
+        throw std::invalid_argument("Failed to convert id to unsigned int");
+    }
+
+    return id;
 }
 
-void print_uint64(uint64_t num) {
-    bitset<sizeof(unsigned long int) * 8> binary(num);  
-    std::cout << binary << std::endl;  
+void print_uint64(uint64_t num)
+{
+    bitset<sizeof(unsigned long int) * 8> binary(num);
+    std::cout << binary << std::endl;
 }
 
-void print_64title() {
-    for (int i=0; i<8; i++) {
-        for (int j=0; j<8; j++) {
+void print_64title()
+{
+    for (int i = 0; i < 8; i++)
+    {
+        for (int j = 0; j < 8; j++)
+        {
             cout << j;
         }
     }
     cout << endl;
 }
 
-char* copy_const_str(const char* cstr) {
+char *copy_const_str(const char *cstr)
+{
     int len = strlen(cstr);
-    char* cpy = new char[len + 1];
+    char *cpy = new char[len + 1];
     memset(cpy, 0, len + 1);
     memcpy(cpy, cstr, len);
     return cpy;
@@ -172,7 +197,7 @@ char* copy_const_str(const char* cstr) {
 *   注意: 传入的指针需要提前申请空间,否则会报Segmentation fault
 *****************************************************************************************
 */
-int aes_encrypt_string(char *_pPassword, char *_pInput, int _InLen, char *_pOutBuf, int *_pOutLen)
+int aes_encrypt_string(const char *_pPassword, char *_pInput, int _InLen, char *_pOutBuf, int *_pOutLen)
 {
     // 上下文结构
     EVP_CIPHER_CTX *pEn_ctx = NULL;
@@ -193,8 +218,8 @@ int aes_encrypt_string(char *_pPassword, char *_pInput, int _InLen, char *_pOutB
 
     // 设置使用 256 位密钥长度的 AES 加密算法，并采用 CBC 模式。
     // CTR mode with key of size 32 bytes
-    const EVP_CIPHER *cipherType = EVP_aes_256_ctr();       // EVP_aes_256_cbc();
-    //cout << "CTR_ENC_MODE" << endl;
+    const EVP_CIPHER *cipherType = EVP_aes_256_ctr(); // EVP_aes_256_cbc();
+    // cout << "CTR_ENC_MODE" << endl;
     if (cipherType == NULL)
     {
         goto clean;
@@ -257,7 +282,7 @@ clean:
 *   返 回 值: 0：成功, -1：失败
 *****************************************************************************************
 */
-int aes_decrypt_string(char *_pPassword, char *_pInput, int _InLen, char *_pOutBuf, int *_pOutLen)
+int aes_decrypt_string(const char *_pPassword, char *_pInput, int _InLen, char *_pOutBuf, int *_pOutLen)
 {
     // 上下文结构
     EVP_CIPHER_CTX *pDe_ctx = NULL;
@@ -277,7 +302,7 @@ int aes_decrypt_string(char *_pPassword, char *_pInput, int _InLen, char *_pOutB
     }
 
     // 设置使用 256 位密钥长度的 AES 加密算法，并采用 CBC 模式。
-    const EVP_CIPHER *cipherType = EVP_aes_256_ctr();   // EVP_aes_256_cbc
+    const EVP_CIPHER *cipherType = EVP_aes_256_ctr(); // EVP_aes_256_cbc
     if (cipherType == NULL)
     {
         goto clean;
@@ -327,18 +352,20 @@ clean:
     return ret;
 }
 
-vector<KV *> LoadKVList(int &n, int &l) {
+vector<KV *> LoadKVList(int &n, int &l)
+{
     MYSQL *con = NULL;
     con = mysql_init(con);
     if (con == NULL)
     {
-        cout << "Init Connect ERROR" << endl;;
+        cout << "Init Connect ERROR" << endl;
+        ;
     }
-    string url = "127.0.0.1";    
-    unsigned int Port = 3306;   
-    string User = "lzq";   
-    string PassWord = "0000";  
-    string DBName = "kvlist"; 
+    string url = "127.0.0.1";
+    unsigned int Port = 3306;
+    string User = "lzq";
+    string PassWord = "0000";
+    string DBName = "kvlist";
     con = mysql_real_connect(con, url.c_str(), User.c_str(), PassWord.c_str(), DBName.c_str(), Port, NULL, 0);
 
     if (con == NULL)
@@ -351,35 +378,37 @@ vector<KV *> LoadKVList(int &n, int &l) {
     MYSQL_RES *res;
     MYSQL_ROW row;
     res = mysql_use_result(con);
-    const char * csname = "utf8";
+    const char *csname = "utf8";
     mysql_set_character_set(con, csname);
 
-    int nums = 0;  
-    nums = mysql_num_fields(res);  
+    int nums = 0;
+    nums = mysql_num_fields(res);
 
-    MYSQL_FIELD * fields;
+    MYSQL_FIELD *fields;
     vector<KV *> kvList;
     n = 0;
     l = 0;
     int tempL = 0;
     char bkey[100] = "THIS_IS_NOT_A_NORMAL_KEY";
-    while( (row = mysql_fetch_row(res)) != nullptr)
+    while ((row = mysql_fetch_row(res)) != nullptr)
     {
         ++n;
         char *key = strdup(row[0]);
         char *value = strdup(row[1]);
 
-        if ( strcmp(key, bkey) != 0 ) {
+        if (strcmp(key, bkey) != 0)
+        {
             l = max(l, tempL);
             tempL = 1;
             // 将bkey的值赋为key
             memcpy(bkey, key, strlen(key) + 1);
-        } else {
+        }
+        else
+        {
             ++tempL;
         }
-        
 
-        KV *kv = new KV(key, stoi(string(row[2])),value);
+        KV *kv = new KV(key, stoi(string(row[2])), value);
         kvList.push_back(kv);
 
         delete[] key;
@@ -392,30 +421,32 @@ vector<KV *> LoadKVList(int &n, int &l) {
     return kvList;
 }
 
-
-uint32_t GetYHash(uint32_t x, uint32_t st1) {
-    string st1Str = to_string(st1);
-    string xStr = to_string(x);
-    string splice = xStr + "|" + st1Str;
-    char *ret = new char[splice.length() + 1];
-    memset(ret, 0, splice.length() + 1);
-    memcpy(ret, (char*)splice.c_str(), splice.length());
-    uint32_t retU32 = BOBHash::run(ret, splice.length() + 1, 3);
-    return retU32;
+/** 通过x和st[label][1]计算y,用于定位元素在EMMu中的位置 */
+uint32_t GetYHash(uint32_t x, uint32_t st1)
+{
+    string x_str = to_string(x);
+    return XXH32(x_str.c_str(), x_str.length(), st1);
 }
 
-uint64_t getTimestamp() {
+uint64_t getTimestamp()
+{
     time_t now = time(nullptr);
     return static_cast<uint64_t>(now) * 1000;
 }
 
-string getMemSizeStr(size_t size) {
-    if (size < 1024) {
+string getMemSizeStr(size_t size)
+{
+    if (size < 1024)
+    {
         return to_string(size) + "B" + "(" + to_string(size) + ")";
-    } else if (size < 1024 * 1024) {
-        return to_string( (float)(size) / 1024.f ) + "KB" + "(" + to_string(size) + ")";
-    } else {
-        return to_string( (float)(size) / 1024.f / 1024.f ) + "MB" + "(" + to_string(size) + ")";
+    }
+    else if (size < 1024 * 1024)
+    {
+        return to_string((float)(size) / 1024.f) + "KB" + "(" + to_string(size) + ")";
+    }
+    else
+    {
+        return to_string((float)(size) / 1024.f / 1024.f) + "MB" + "(" + to_string(size) + ")";
     }
 }
 
@@ -424,40 +455,40 @@ string getMemSizeStr(size_t size) {
  * delim: 分隔符
  */
 
-
- char* concat(char delim, const char* first, ...) {
+char *concat(char delim, const char *first, ...)
+{
     va_list args;
     va_start(args, first);
 
-    // 计算总长度
+    // 计算总长度（含终止符校验）
     size_t total_length = strlen(first);
-    const char* s;
-    int count = 1;
+    int delim_count = 0;
+    const char *s;
 
-    while ((s = va_arg(args, const char*)) != nullptr) {
+    // 第一遍扫描：计算实际需要的内存大小
+    while ((s = va_arg(args, const char *)) != nullptr)
+    {
         total_length += strlen(s) + 1; // +1 为分隔符
-        count++;
+        delim_count++;
     }
     va_end(args);
 
-    // 分配内存
-    char* buffer = new char[total_length + 1];
-    char* current = buffer;
+    // 分配内存 (+1 给结束符'\0')
+    char *buffer = new char[total_length + 1]{0};
+    char *current = buffer;
 
-    // 拼接第一个字符串
+    // 第二遍扫描：实际拼接
+    va_start(args, first);
     strcpy(current, first);
     current += strlen(first);
 
-    // 拼接剩余字符串
-    va_start(args, first);
-    for (int i = 1; i < count; ++i) {
+    while ((s = va_arg(args, const char *)) != nullptr)
+    {
         *current++ = delim;
-        s = va_arg(args, const char*);
         strcpy(current, s);
         current += strlen(s);
     }
     va_end(args);
 
-    *current = '\0';
     return buffer;
 }

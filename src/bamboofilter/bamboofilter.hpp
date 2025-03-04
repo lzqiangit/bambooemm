@@ -6,8 +6,8 @@
 #include <iostream>
 #include <vector>
 
-#include "bamboofilter/predefine.h"
-#include "bamboofilter/segment.hpp"
+#include "predefine.h"
+#include "segment.hpp"
 #include "BOBHash.h"
 #include "filterposition.hpp"
 
@@ -78,7 +78,7 @@ public:
 
     void Extend();
     void Compress();
-    void Encrypt(char *password);
+    void Encrypt(const char *password);
     /**
      * 初始化时,用于拼接value的明文
      * key key
@@ -139,7 +139,7 @@ bool BambooFilter::Insert(const char *key, ValueEntry valueE)
 }
 
 /**
- * key : xxHash(key) || counter
+ * key : BobHash(key) || counter
  */
 bool BambooFilter::Lookup(const char *key, ValueEntry &valueE)
 {
@@ -209,7 +209,7 @@ void BambooFilter::Compress()
     hash_table_.pop_back();
 }
 
-void BambooFilter::Encrypt(char *password)
+void BambooFilter::Encrypt(const char *password)
 {
     for (Segment *segment : hash_table_)
     {

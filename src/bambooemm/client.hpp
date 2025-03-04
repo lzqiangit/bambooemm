@@ -6,14 +6,18 @@
 #include "predefine.h"
 #include "filterposition.hpp"
 #include "Timer.hpp"
+#include "Update.hpp"
 
 #include <unordered_map>
 #include <string>
 #include <sstream>
 
-#define ST_COALESCE_TIMES 0     // 融合次数
-#define ST_SUBMIT_TIMES 1       // 提交次数
-#define ST_MAX_VOLUME 2         // ？
+#include "xxhash.h"
+
+#define ST_COALESCE_TIMES 0 // 融合次数
+#define ST_SUBMIT_TIMES 1   // 提交次数
+// #define ST_MAX_VOLUME 2         // ？
+
 using std::pair;
 
 class Client
@@ -22,554 +26,427 @@ private:
     /* data */
     int n;
     BambooEMM *bemm;
-    const uint32_t K = 123456;
-    const uint32_t Ku = 654321;
-    unordered_map<string, uint32_t*>  *EMMst;       // 分别存储
+    const uint32_t mKe = 123456;      // 用于加密EMM中数据的密钥
+    const uint32_t mKu = 654321;     // 用于加密更新数据的密钥
+    const uint32_t mSu = 135790;     // 用于更新计算HashX的种子
+    unordered_map<string, uint32_t *> *EMMst; // 分别存储
+    const char* mPassword = LoadKey();
+    /************* 用于查询的数据结构 **************/
+    vector<ValueEntry> queryList;           // 存储服务器返回的结果
+    vector<vector<KV>> resolvedQueryList;   // 存储解密, 去随机数, 分割后的结果
+    int *queryValueMap;  // 存储对应counter的value的位置
+    int queryValueMapSize;
+    vector<int> preRandom;   // 存储解密后的随机数
+    int realVolume;
+    vector<KV> queryRet;    // 存储查询结果
+    
     /**
      * 变大 -> 没啥问题
-     * 变小 -> 需要考虑到第l号value位的值是否需要挪动到前面来 
+     * 变小 -> 需要考虑到第l号value位的值是否需要挪动到前面来
      * vector中存储bemm中这个key目前是按多少容量存储的, 太大了吧?
      */
-    uint32_t *volumeNumArr;    // 存储某一容量的key的数量  第0号位置存储数组大小
+    uint32_t *volumeNumArr; // 存储某一容量的key的数量  第0号位置存储数组大小
+    int mCapacitySize;
 
-    uint32_t getVolumeNumArrLength();
-    void setVolumeNumArrLength(uint32_t length);
-    void ExpandVNArr();     // 扩展
 public:
-    Client(/* args */);
-    ~Client();
-
-    void SetupEMM(vector<KV *> kvList, int n, int l);
-    void PaddingStep(vector<KV *> kvList, int l);
-    BambooEMM *getBEMM();
-    /**
-     * 此函数用于更新操作,再融合完成value完成后,给value添加随机数,加密后上传服务器更新valueEntry
-     * key 需要重写的key
-     * valueE 需要重写的未添加随机数且未加密状态的valueEntry
-     * preRandom 该value的前一个随机数 
-     */
-    void EncryptAndUpload(const char *key, int counter, ValueEntry valueE, int preRandom);
-
-    /**
-     * 更新函数: 
-     * key: 需要更新的key <- hash(key)||counter
-     * counter
-     * op: 需要对 key[counter]执行的操作
-     * value: 操作后的值 insert,edit需要value而delete不需要
-     */
-    void Update(char *key, char op, KV kcv);
-    
-    /**
-     * 查询
-     */
-    vector<KV> Query(const char *key);
-    /**
-     * 计算存储开销
-     * 返回各个部分的存储开销
-     * client: client的存储开销
-     *      EMMst
-     *      volumeNumArr
-     *      others  : 其他成员变量和指针的存储开销
-     * server: server的存储开销
-     *      
-     * 
-     */
-    size_t getMemOverHead();
-
-private:
-    uint32_t GetXHash(const char *key);
-    /**
-     * 拼接 操作对应的操作符和val
-     */
-    char *SpliceOpVal(char op, uint32_t counter, char *val); 
-    // 融合
-    vector< vector<KV> > Coalesce(const char *key, int cnt, vector<ValueEntry> old);    
-    bool ShrinkVolume(vector< vector<KV> > &resolueQuery, const char *key, int preVolume);
-    void SubmitUpdate(vector<vector<KV>> resolueQuery, const char *key, int *preRandom);
-};
-
-Client::Client(/* args */)
-{
-    EMMst = new unordered_map<string, uint32_t*>();
-}
-
-Client::~Client()
-{
-}
-
-uint32_t Client::getVolumeNumArrLength() {
-    return volumeNumArr[0];
-}
-
-void Client::setVolumeNumArrLength(uint32_t length) {
-    volumeNumArr[0] = length;
-}
-
-void Client::ExpandVNArr() {
-    // 
-    int oldLen = getVolumeNumArrLength();
-    int newLen = oldLen * 1.5;
-    uint32_t *newVNA = new uint32_t[newLen];
-    // 初始化
-    memset(newVNA, 0, sizeof(uint32_t) * newLen);
-    // 拷贝
-    memcpy(newVNA, volumeNumArr, sizeof(uint32_t) * oldLen);
-    // 删除
-    delete []volumeNumArr;
-    volumeNumArr = newVNA;
-    // 重新设置容量大小
-    setVolumeNumArrLength(newLen);
-}
-
-/**
- * 传入初始数据的EMM，以及kv总数和最大最大容量l
- */
-void Client::SetupEMM(vector<KV *> kvList, int n, int l)
-{
-    this->n = n;
-    vector<KV *> maxCounterKVList; // 存储每个key中counter最大的元素
-    this->bemm = new BambooEMM();
-    this->bemm->Setup(2, MIN_STAR_CAP, l);           // LoadKey应该作为函数参数传入好一些!!!
-    char *tempKey = kvList.at(0)->key;
-     // 初始化volumeNum
-    int volumeNumSize = l * 1.5;
-    volumeNumArr = new uint32_t[volumeNumSize];
-    for (int i=0; i<volumeNumSize; i++) {
-        volumeNumArr[i] = 0;
-    }
-    setVolumeNumArrLength(volumeNumSize);
-    // 插入初始元素
-    for (int i = 0; i < kvList.size(); i++)         // 考虑直接通过数据库来求得每个key的容量
+    Client(/* args */)
     {
-        this->bemm->SetupInsert(kvList.at(i), K); // counter必须从0开始而且连续 yes
-        if (i == kvList.size() - 1)
-        {
-            maxCounterKVList.push_back(kvList.at(i));
-            ++volumeNumArr[kvList.at(i)->counter + 1];
-            continue;
-        }
-        if (strcmp(tempKey, kvList.at(i + 1)->key) != 0)
-        {
-            maxCounterKVList.push_back(kvList.at(i));
-            ++volumeNumArr[kvList.at(i)->counter + 1];
-            tempKey = kvList.at(i + 1)->key;
-        }
+        EMMst = new unordered_map<string, uint32_t *>();
     }
-    PaddingStep(maxCounterKVList, l);
-    // 加密
-    bemm->AddRandomAndEncrypt(LoadKey());
-    // 释放maxCounterKVList
-}
 
-/**
- * 考虑到先插入后填充,或许可以另开一个填充函数
- */
-void Client::PaddingStep(vector<KV *> kvList, int l)
-{
-    int counter = 0;
-    int passCounter = 0;
-    char *key;
-    for (KV *kv : kvList)
+    ~Client()
     {
-        counter = kv->counter;
-        key = kv->key;
-        for (int i = counter; i < l; i++)
+    }
+
+    /**
+     * 扩容volumeNumArr和queryValueMap
+     */
+    void ExpandVNArr()
+    {
+        int oldLen = mCapacitySize;
+        mCapacitySize *= 1.5;
+
+        uint32_t *newVNA = new uint32_t[mCapacitySize];
+        // 初始化
+        memset(newVNA, 0, sizeof(uint32_t) * mCapacitySize);
+        // 拷贝
+        memcpy(newVNA, volumeNumArr, sizeof(uint32_t) * oldLen);
+        // 删除
+        delete[] volumeNumArr;
+        volumeNumArr = newVNA;
+
+        // queryValueMap
+        delete[] queryValueMap;
+        queryValueMap = new int[mCapacitySize];
+        memset(queryValueMap, 0, sizeof(int) * mCapacitySize);
+    }
+
+    /**
+     * 传入初始数据的EMM，以及kv总数和最大最大容量l
+     */
+    void SetupEMM(vector<KV *> kvList, int n, int l)
+    {
+        this->n = n;
+        vector<KV *> maxCounterKVList; // 存储每个key中counter最大的元素
+        this->bemm = new BambooEMM();
+        this->bemm->Setup(2, MIN_STAR_CAP, l); // LoadKey应该作为函数参数传入好一些!!!
+        char *tempKey = kvList.at(0)->key;
+        // 初始化volumeNum 和 queryValueMap
+        mCapacitySize = l * 1.5;
+        volumeNumArr = new uint32_t[mCapacitySize];
+        queryValueMap = new int[mCapacitySize];
+        memset(volumeNumArr, 0, sizeof(uint32_t) * mCapacitySize);
+        memset(queryValueMap, 0, sizeof(int) * mCapacitySize);
+
+        // 插入初始元素
+        for (int i = 0; i < kvList.size(); i++) // 考虑直接通过数据库来求得每个key的容量
         {
-            KV *kv = new KV(key, ++counter);
-            if (!(this->bemm->isExistKeyCounter(KV::MakeHashKey(key, K), kv->counter)))
+            this->bemm->SetupInsert(kvList.at(i), mKe); // counter必须从0开始而且连续 yes
+            if (i == kvList.size() - 1)
             {
-                this->bemm->SetupInsert(kv, K);
+                maxCounterKVList.push_back(kvList.at(i));
+                ++volumeNumArr[kvList.at(i)->counter + 1];
+                continue;
             }
-            else
+            if (strcmp(tempKey, kvList.at(i + 1)->key) != 0)
             {
-                // cout << "OKKKKKKKKKKKK! : " << kv->key << "||" << kv->counter << endl;
-                ++passCounter;
+                maxCounterKVList.push_back(kvList.at(i));
+                ++volumeNumArr[kvList.at(i)->counter + 1];
+                tempKey = kvList.at(i + 1)->key;
             }
-            // delete kv;            // ? 泄露?????
+        }
+        PaddingStep(maxCounterKVList, l);
+        // 加密
+        bemm->AddRandomAndEncrypt(mPassword);
+        // 释放maxCounterKVList
+    }
+
+    /**
+     * 考虑到先插入后填充,或许可以另开一个填充函数
+     */
+    void PaddingStep(vector<KV *> kvList, int l)
+    {
+        int counter = 0;
+        int passCounter = 0;
+        char *key;
+        for (KV *kv : kvList)
+        {
+            counter = kv->counter;
+            key = kv->key;
+            for (int i = counter; i < l; i++)
+            {
+                KV *kv = new KV(key, ++counter);
+                if (!(this->bemm->isExistKeyCounter(KV::MakeHashKey(key), kv->counter)))
+                {
+                    this->bemm->SetupInsert(kv, mKe);
+                }
+                else
+                {
+                    // cout << "OKKKKKKKKKKKK! : " << kv->key << "||" << kv->counter << endl;
+                    ++passCounter;
+                }
+                // delete kv;            // ? 泄露?????
+            }
+        }
+        cout << "共用填充:" << passCounter << "|" << 228601 << "(" << (float)passCounter / 228601.f * 100.f << "%)" << endl;
+    }
+
+    BambooEMM *getBEMM()
+    {
+        return this->bemm;
+    }
+
+    /**
+     * 查询获得了 : key || counter || value || random ——> hash(hash(key)||counter) -> new splic(value)
+     * 客户端重新解析生成 KV，装入valueEntry
+     * 在做了必要的修改之后，将修改后的kvList传入此函数
+     * 此函数会拼接 splic_key = hash(hash(key)||counter) 和 splic_val = splic(value),这里splic_val的random值会修改      // ? 在kv中存储random y
+     * 然后通过splic_key的值作为key去组合value，传递给服务端bambooemm进行UpdateValue    // char* 转 string作为key，否则无法正常比较值，而是比较char*的指针地址
+     */
+
+    /**
+     * 将value添加随机数,并更新服务器中key对应位置的值,
+     * 为了防止新添加新key可能导致的出现不存在的指纹的问题
+     */
+    void EncryptAndUpload(const char *key, int counter, ValueEntry valueE, int preRandom)
+    {
+        string hashKey = KV::MakeHashKey(key);
+        char *searchKey = KV::MakeSearchKey(hashKey, counter);
+        valueE.SpliceRandom(preRandom);
+        valueE.Enc(mPassword);
+
+        if (bemm->isExistKeyCounter(hashKey, counter))
+        {
+            bemm->ReInsert(searchKey, valueE);
+        }
+        else
+        {
+            bemm->Insert(hashKey, counter, valueE);
         }
     }
-    cout << "共用填充:" << passCounter << "|" << 228601 << "(" << (float)passCounter / 228601.f * 100.f << "%)" << endl;
-}
 
-BambooEMM *Client::getBEMM()
-{
-    return this->bemm;
-}
+    /**
+     * 更新EMMst中的数据,调用服务端添的接口,向EMMu中更新 key||counter位置的值
+     * x <- hash(key||MMst[key][0], len, Ku);   // 用于计算EMMu中index的 中间值
+     * y <- hash(MMst[kye][1]||x, len, Ku) % EMMu.length();     // EMMu的索引值
+     * z <- Enc(Kenc, (op, counter,v));
+     * EMMu[y] <- z
+     * EMMst[label][1]++;
+     */
+    void Update(const char *key, char op, KV kcv)
+    {
+        // 在st中找不到key,需要初始化
+        if (EMMst->find(key) == EMMst->end())
+        {
+            (*EMMst)[key] = new uint32_t[3]{0, 0};
+        }
+        uint32_t x = GetXHash(key);
+        // Question ！！！！！
+        uint32_t y = GetYHash(x, (*EMMst)[key][1]);
+        // 获取y
+        ValueEntry valueE;
+        valueE.SetValue(kcv.key, kcv.counter, kcv.value);
+        UpdateEntry updataE(kcv, op);
 
-/**
- * 查询获得了 : key || counter || value || random ——> hash(hash(key)||counter) -> new splic(value)
- * 客户端重新解析生成 KV，装入valueEntry
- * 在做了必要的修改之后，将修改后的kvList传入此函数
- * 此函数会拼接 splic_key = hash(hash(key)||counter) 和 splic_val = splic(value),这里splic_val的random值会修改      // ? 在kv中存储random y
- * 然后通过splic_key的值作为key去组合value，传递给服务端bambooemm进行UpdateValue    // char* 转 string作为key，否则无法正常比较值，而是比较char*的指针地址
- */
+        updataE.SpliceRandom();
+        updataE.Enc(mPassword);
 
-
-/**
- * 将value添加随机数,并更新服务器中key对应位置的值,
- * 为了防止新添加新key可能导致的出现不存在的指纹的问题
- */
-void Client::EncryptAndUpload(const char *key, int counter, ValueEntry valueE, int preRandom)
-{
-    string hashKey = KV::MakeHashKey(key, K);
-    char *searchKey = KV::MakeSearchKey(hashKey, counter);
-    valueE.SpliceRandom(preRandom);
-    valueE.Enc(LoadKey());
-    
-    if (bemm->isExistKeyCounter(hashKey, counter)) {
-        bemm->ReInsert(searchKey, valueE);
-    } else {
-        bemm->Insert(hashKey, counter, valueE);
+        ++(*EMMst)[key][ST_SUBMIT_TIMES];
+        // 上传服务器
+        // 注意记录counter
+        bemm->AddUpdata(y, updataE);
     }
-}
 
-/**
- * 更新EMMst中的数据,调用服务端添的接口,向EMMu中更新 key||counter位置的值
- * x <- hash(key||MMst[key][0], len, Ku);   // 用于计算EMMu中index的 中间值
- * y <- hash(MMst[kye][1]||x, len, Ku) % EMMu.length();     // EMMu的索引值
- * z <- Enc(Kenc, (op, counter,v));
- * EMMu[y] <- z
- * EMMst[label][1]++;
- */
-void Client::Update(char *key, char op, KV kcv) {
-    // 在st中找不到key,需要初始化
-    if (EMMst->find(key) == EMMst->end()) {     
-        (*EMMst)[key] = new uint32_t[3]{0, 0, bemm->getMaxVolume()};
-    }
-    uint32_t x = GetXHash(key);
-    // Question ！！！！！
-    uint32_t y = GetYHash(x, (*EMMst)[key][1]);
-    // 获取y
-    ValueEntry valueE;
-    valueE.SetValue(kcv.key, kcv.counter, kcv.value);
-    UpdataEntry updataE(valueE, op);
-    
-    updataE.SpliceRandom();
-    updataE.Enc(LoadKey());
-
-
-    ++(*EMMst)[key][ST_SUBMIT_TIMES];
-    // 上传服务器
-    // 注意记录counter
-    bemm->AddUpdata(y, updataE);
-}
-
-vector<KV> Client::Query(const char *key) {
-
-    //cout << "开始调用的时间:" << Timer::getInstance().getDuration() << "ms" << endl;
-    string hashKey = KV::MakeHashKey(key, K);
-    //cout << "生成HashKey的时间:" << Timer::getInstance().getDuration() << "ms" << endl;
-    vector<ValueEntry> queryList;
-    if (EMMst->find(key) != EMMst->end() && (*EMMst)[key][ST_MAX_VOLUME] > bemm->getMaxVolume()) {
-        queryList = bemm->Query(hashKey, (*EMMst)[key][ST_MAX_VOLUME]);
-    } else {
-        //cout << "if判断结束的时间:" << Timer::getInstance().getDuration() << "ms" << endl;
+    vector<KV> Query(const char *key)
+    {
+        queryRet.clear();
+        // cout << "开始调用的时间:" << Timer::getInstance().getDuration() << "ms" << endl;
+        string hashKey = KV::MakeHashKey(key);
+        // cout << "生成HashKey的时间:" << Timer::getInstance().getDuration() << "ms" << endl;
+        queryList.clear();
         queryList = bemm->Query(hashKey);
-        //cout << "Query完成时间:" << Timer::getInstance().getDuration() << "ms" << endl;
-    }
-    vector< vector<KV> > resolueQuery;
-    uint32_t cnt = 0;
-    if ( EMMst->find(key) != EMMst->end() ) {
-        cnt = (*EMMst)[key][ST_SUBMIT_TIMES];
-    }
-    // 融合更新, 并解析结果
-    resolueQuery = Coalesce(key, cnt, queryList);
-    // } else {
-    //     for (int i=0; i<queryList.size(); i++) {
-    //         ValueEntry ve = queryList.at(i);
-    //         ve.DivRandom();
-    //         // 解析value值
-    //         vector<char*> values = ve.DivValue();
-    //         vector<KV> kvs = KV::LoadKVList(values);
-    //         resolueQuery.push_back(kvs);
-    //     }
-    // }
-    // 找到真正有意义的解
-    vector<KV> ret;
-    for (auto kvs : resolueQuery) {
-        for (auto kv : kvs) {
-            if (strcmp(kv.key, key) == 0 && (!kv.isPadding())) {
-                ret.push_back(kv);
-            }
-        }
-    }
-    // 返回正真的元素
-    return ret;
-}
-
-/**********************************************  Splice  *******************************************************************/
-uint32_t Client::GetXHash(const char *key) {
-    string keyStr = key;
-    string st0Str = to_string( (*EMMst)[key][ST_COALESCE_TIMES] );
-    string xStr = keyStr + "|" + st0Str; 
-    char *ret = new char[xStr.length() + 1];
-    memset(ret, 0, xStr.length() + 1);
-    memcpy(ret, (char*)xStr.c_str(), xStr.length());
-    return BOBHash::run(ret, strlen(ret), 3);
-}
-
-char *Client::SpliceOpVal(char op, uint32_t counter, char *val) {
-    stringstream ss;
-
-    ss << op << "|" << counter << "|" << val;
-    string splice = ss.str();
-    char *ret = new char[splice.length() + 1];
-    memset(ret, 0, splice.length() + 1);
-    memcpy(ret, splice.c_str(), splice.length());
-    return ret;
-}
-
-vector< vector<KV> > Client::Coalesce(const char *key, int cnt, vector<ValueEntry> queryVEL) {
-
-
-    int queryLen = queryVEL.size();
-    int *preRandom = new int[queryLen];
-    int notEmptyNum = 0, preNotEmptyNum;     // 非空元素个数, 当前key的实际容量
-    vector<int> deledIndexs;     // 用于记录删除的元素索引,用于支持一次融合多次更新
-    bool isAdjust = false;
-
-    unordered_map<int, pair<int, int> > map;    // counter -> (ValueEntry_index, value_index)
-    vector< vector<KV> > resolueQuery;      // 用于存储解析的查询结果, 并在其上进行更新操作, 
-    // 解密并 解析查询结果, 找到每个 key||counter 对应的 qeryVEL 的索引, 并记录下随机数
-    for (int i=0; i<queryLen; i++) {   // 使用引用才能真正实现queryList中元素的解密
-        if (queryVEL[i].getLen() > 0) {
-            queryVEL[i].Dec(LoadKey());
-            preRandom[i] = queryVEL[i].DivRandom();    // 记录随机数
-            // 解析value值
-            vector<char*> values = queryVEL[i].DivValue();
-            vector<KV> kvs = KV::LoadKVList(values);
-            resolueQuery.push_back(kvs);
-            // 遍历判断
-            for (int j=0; j<kvs.size(); j++) {
-                KV kv = kvs.at(j);
-                if ( strcmp( kv.key, key) == 0) {
-                           // 还可能有找不到的counter,这种counter就是共用了其他value的值！
-                    if (!kv.isPadding()) {
-                        map[kv.counter] = {i, j};
-                        notEmptyNum++;
-                // 是填充值
-                // 因为 kcv 并不会严格按照 hash(hash(key)|counter) 的顺序存储, 而是仅仅保证其存储在该key对应的l给entry的某一个元素中
-                // - 在扩展l中, 可能出现两个同一counter的值, 填充值一定在末尾, 如果下前面找到了相同的counter值,一定要将前面的值移动到此处 
-                // 没有找到,正常构建索引即可
-                    } else if (map.find(i) != map.end()) {
-                        // 此种情况只会出现在 导致l 增大的key 在其导致l增大后的第二次查询中
-                        // 如果是填充值, 还需要判断
-                        // 找到了, 直接移动即可
-                        pair<int, int> prePos = map[i];    // 对应值存储的位置
-                        // 复制resolueQuery中对应位置的值到当前的i的位置
-                        KV tempKV = resolueQuery[prePos.first][prePos.second];
-                        // 删除原位置的值
-                        resolueQuery[prePos.first].erase( resolueQuery[prePos.first].begin() + prePos.second );
-                        // 修改索引
-                        map[i] = {i, 0};
-                        resolueQuery[i].erase(resolueQuery[i].begin() + j);
-                        resolueQuery[i].push_back(tempKV);
-                        isAdjust = true;
-                    } else {
-                        // 填充值
-                        map[kv.counter] = {i, j};
-                    }
-                }
-            }
-        } else {
-            // 此种情况只会出现在 出现新的key 的情况下
-            // 判断是否存在长度为0的valueE,如果有,那么就说明这个key是一个新的key,需要将这些valueE中填充值
-            // 如果这个key是一个新值,但是其搜索出来的valueE中均有值,那么就不用为这个新key进行特殊的处理
-            // 如果是因为l增大导致的空值,那么就直接对于counter值到这个空值位即可
-            vector<KV> newKVS;
-            resolueQuery.push_back(newKVS);
-            KV newPaddingKV((char*)key, i);
-            resolueQuery[i].push_back(newPaddingKV);
-            map[i] = {i, 0};
-        }      
-    }    
-
-    preNotEmptyNum = notEmptyNum;   // preNotEmptyNum 记录在融合操作之前的实际容量
-    if (cnt <= 0) {
-        if (  (*EMMst).find(key) != (*EMMst).end() && ShrinkVolume(resolueQuery, key, (*EMMst)[key][ST_MAX_VOLUME]) ) {
-            SubmitUpdate(resolueQuery, key, preRandom);
-            (*EMMst)[key][ST_MAX_VOLUME] = bemm->getMaxVolume();
-        } else {
-            if (isAdjust)   SubmitUpdate(resolueQuery, key, preRandom);
-        }
-        return resolueQuery;
-    }
-    // 解析更新
-    uint32_t x = GetXHash(key);
-    vector<UpdataEntry> ues = bemm->GetUpdataList(x, cnt);
-    for (UpdataEntry &updata : ues) {
-        updata.Dec(LoadKey());
-        updata.DivRandom();
-        char *value = updata.DivValue();
-        KV updataKv(value);                         // 更新后的值
-        char op = updata.DivOP();
-
-        int upCounter = updataKv.counter;           // 操作的counter
-        int preDeledNum = 0;
-        // 调整因删除产生的偏移
-        for (int deled : deledIndexs) {
-            if (deled <upCounter) {
-                preDeledNum++;
-            }
-        }
-        upCounter -= preDeledNum;
-
-        pair<int, int> prePos, aftPos, finalPos;
-        int minIndex;
-        switch (op)
+        // 去除随机数, 并解析
+        ResolveQueryList();
+        MakeQueryMap(key);
+        uint32_t cnt = 0;
+        if (EMMst->find(key) != EMMst->end())
         {
-        case OP_DELETE:
-            
-            // 类似顺序表, 依次将前面元素的counter减一,并向前挪动一位
-            for (int i=upCounter; i<notEmptyNum-1; i++) {
-                // 找到元素
-                prePos = map[i];
-                aftPos = map[i + 1];
-                // 移动位置
-                resolueQuery[prePos.first][prePos.second] = resolueQuery[aftPos.first][aftPos.second];
-                // 修改counter
-                resolueQuery[prePos.first][prePos.second].counter--;
+            cnt = (*EMMst)[key][ST_SUBMIT_TIMES];
+            if (cnt > 0) {
+                CoalesceUpdate(key, cnt);
             }
-            finalPos = map[notEmptyNum-1];       
-            resolueQuery[finalPos.first][finalPos.second].BePadding();  // 将最后一个非填充值修改为填充值
-            notEmptyNum--;      // 需要融合多个操作的时候, 需要考虑非空值的变化
-            deledIndexs.push_back(upCounter + preDeledNum);       // 实际的push值需要是融合前的
-            // 其他的填充值不用变动! 结束!
-            break;
-        case OP_EDIT:       // EDIT要求这个值之前必须要已经存在的
-            // 修改value即可
-            if (map.find(upCounter) == map.end()) {
-                // 没有找到, 直接返回修改失败
-                cout << "对不存在的counter值无法进行修改操作!" << endl;
-            }
-            prePos = map[upCounter];
-            resolueQuery[prePos.first][prePos.second].setValue(updataKv.value);
-            break;
-        case OP_INSERT:
-            // 如果对应counter有填充, 那么就直接修改对应值就可以了
-            if ( map.find(notEmptyNum) != map.end() ) {
-                prePos = map[notEmptyNum];
-                resolueQuery[prePos.first][prePos.second].setValue(updataKv.value);
-            } else {        // 如果没有, 就填充到容量最小的位置
-                // 找到最小容量的位置
-                minIndex = 0;
-                for (int i=1; i<resolueQuery.size(); i++) {
-                    if (resolueQuery[minIndex].size() > resolueQuery[i].size()) {
-                        minIndex = i;
-                    }
+        }
+        // 解析结果并返回
+
+        for (auto kvs : resolvedQueryList)
+        {
+            for (auto kv : kvs)
+            {
+                if (strcmp(kv.key, key) == 0 && (!kv.isPadding()))
+                {
+                    queryRet.push_back(kv);
                 }
-                // 添加值
-                updataKv.counter = notEmptyNum;
-                resolueQuery[minIndex].push_back(updataKv);
-                // 修改map
-                map[notEmptyNum] = {minIndex, resolueQuery[minIndex].size() - 1};
             }
-            notEmptyNum++;
-            break;
-        default:
-            cout << "ERROR OP!";
-            exit(-1);
-            break;
-        } 
+        }
+
+        return queryRet;
     }
 
-    volumeNumArr[preNotEmptyNum]--;
-    // 判断是否超过目前volumeNumArr的极限,是就进行扩容
-    if (notEmptyNum >= getVolumeNumArrLength()) {
-        ExpandVNArr(); 
+    /**********************************************  Splice  *******************************************************************/
+    uint32_t GetXHash(const char *key)
+    {   
+        return XXH32(key, strlen(key), mSu);
     }
-    volumeNumArr[notEmptyNum]++;
-    /**************************************** 判断并调整l ****************************************/
-    uint32_t currMaxVolume = bemm->getMaxVolume();
-    // 判断是否触发了l的变化
-    if (notEmptyNum > currMaxVolume) {
-        // 触发l变大
-        bemm->setMaxVolume(notEmptyNum);
-    } else if (preNotEmptyNum == currMaxVolume && volumeNumArr[preNotEmptyNum] == 0) {
-        // l 变小
-        for (int i=currMaxVolume; i>0; i--) {
-            if (volumeNumArr[i] != 0) {
-                bemm->setMaxVolume(i);
+
+    char *SpliceOpVal(char op, uint32_t counter, char *val)
+    {
+        stringstream ss;
+
+        ss << op << "|" << counter << "|" << val;
+        string splice = ss.str();
+        char *ret = new char[splice.length() + 1];
+        memset(ret, 0, splice.length() + 1);
+        memcpy(ret, splice.c_str(), splice.length());
+        return ret;
+    }
+    /**
+     * 去除解密queryList, 去除尾随机数, 并解析为resolvedQueryList
+     */
+    void ResolveQueryList()
+    {
+        resolvedQueryList.clear();
+        // 清空preRandom, 注意释放内存
+        preRandom.clear();
+        
+        int queryLen = queryList.size();
+        for (int i = 0; i < queryLen; i++)
+        { // 使用引用才能真正实现queryList中元素的解密
+            if (queryList[i].getLen() > 0)
+            {
+                queryList[i].Dec(mPassword);    // 解密
+                preRandom.push_back(queryList[i].DivRandom()); // 去除随机数, 《需要记录下来, 然后防止生成的随机数同上次相同》
+                // 解析value值
+                vector<char *> values = queryList[i].DivValue();
+                vector<KV> kvs = KV::LoadKVList(values);
+                resolvedQueryList.push_back(kvs);
+            } else {
+                // ? 什么情况下会出现长度为0的valueE, 插入新的value ???
+            }
+        }
+    }
+
+    /**
+     * 生成映射, 统计非填充有意义的值的数量
+     */
+    void MakeQueryMap(const char *key) {
+        // 初始化queryValueMap
+        memset(queryValueMap, 0, sizeof(int) * mCapacitySize);
+
+        realVolume = 0;
+        int queryLen = resolvedQueryList.size();
+        for (int i = 0; i < queryLen; i++)
+        { // 使用引用才能真正实现queryList中元素的解密
+            for (int j = 0; j < resolvedQueryList[i].size(); j++) {
+                if (strcmp(key, resolvedQueryList[i][j].key) == 0) {
+                    queryValueMap[i] = j;
+                    if (!resolvedQueryList[i][j].isPadding()) {
+                        ++realVolume;
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    void CoalesceUpdate(const char *key, uint32_t cnt) {
+        // 获取更新并解析
+        uint32_t x = GetXHash(key);
+        vector<UpdateEntry> ues = bemm->GetUpdataList(x, cnt);
+        // 调整EMMst
+        (*EMMst)[key][ST_SUBMIT_TIMES] = 0;
+        (*EMMst)[key][ST_COALESCE_TIMES]++;
+        // 解析更新
+        vector<::Update> updates = Update::ResolveFromUpdateEntries(ues, mPassword);
+        // 定义辅助变量
+        int updateVolume = realVolume; // 用于统计更新操作对容量的影响
+        // 服务端最大容量
+        uint32_t currMaxVolume = bemm->getMaxVolume();
+        
+        for (int i=0; i<updates.size(); i++)
+        {
+            
+            ::Update update = updates[i];
+
+            // 输出update的信息
+            cout << "Update:" << update.op << "|" << update.key << "|" << update.counter << "|" << update.value << endl;
+
+            switch (update.op)
+            {
+            case OP_DELETE:
+                // 循环覆盖
+                for (int i=update.counter; i<updateVolume-1; i++) {
+                    resolvedQueryList[i][queryValueMap[i]].value =  resolvedQueryList[i+1][queryValueMap[i+1]].value;
+                }   
+                // 最后一个元素转化为填充值
+                resolvedQueryList[updateVolume-1][queryValueMap[updateVolume-1]].BePadding();   
+                // 更新未完成的update的counter
+                for (int j=i+1; j<updates.size(); j++) {
+                    if (updates[j].counter > update.counter) {
+                        --updates[j].counter;
+                    }
+                }
+                --updateVolume;
+                break;
+            case OP_EDIT: // EDIT要求这个值之前必须要已经存在的
+                resolvedQueryList[update.counter][queryValueMap[update.counter]].setValue(update.value);
+                break;
+            case OP_INSERT:
+                // 如果对应counter有填充, 那么就直接修改对应值就可以了
+                // 判断当前容量是否超标, 是上传插入到服务器, 等待下一次搜索,更新updateVolume后直接退出即可
+                if (updateVolume >= currMaxVolume) {
+                    // 上传更新！！！！！！！！！！！！！EMMST需要调整
+                    KV kv(update.key, update.counter, update.value);
+                    Update(update.key, update.op, kv);
+                    queryRet.push_back(kv);
+                } else {
+                    resolvedQueryList[updateVolume][queryValueMap[updateVolume]].setValue(update.value);
+                }
+                ++updateVolume;
+                break;
+            default:
+                cout << "【ERROR】Undefined Operation!!!";
                 break;
             }
         }
-    }
-    /**************************************** 判断并收缩EMM中元素至符合当前容量 ****************************************/
-    // 调整EMMst
-    ShrinkVolume(resolueQuery, key, (*EMMst)[key][ST_MAX_VOLUME]);
-    SubmitUpdate(resolueQuery, key, preRandom);
 
-    (*EMMst)[key][ST_SUBMIT_TIMES] = 0;
-    (*EMMst)[key][ST_COALESCE_TIMES]++;
-    (*EMMst)[key][ST_MAX_VOLUME] = bemm->getMaxVolume();
+        
+        // 判断是否超过目前volumeNumArr的极限,是就进行扩容
+        if (updateVolume >= mCapacitySize)
+        {
+            ExpandVNArr();
+        }
 
-    return resolueQuery;
-}
-
-bool Client::ShrinkVolume(vector<vector<KV>> &resolueQuery, const char *key, int preVolume) {
-    int currVolume = bemm->getMaxVolume();
-    if ( preVolume > currVolume ) {    // 如果其 上次融合的时候的最大容量 大于 当前的最大容量, 就需要调整
-        // 如果存在 有意义的value放在无意义的部分,那么就需要将其移动至有意义的部分
-        bool changed = false;
-        for (int i=currVolume; i < preVolume; i++) {   
-            // 判断是否为该指纹的有意义的值
-            for (int j = 0; j < resolueQuery[i].size(); j++) {
-                if ( strcmp(resolueQuery[i][j].key, key) == 0) {
-                    if (!resolueQuery[i][j].isPadding()) {   // 删除填充值
-                        // 找到最短的位置,把值填充到那个位置
-                        int minIndex = 0;
-                        for (int p=1; p<currVolume; p++) {
-                            if (resolueQuery[minIndex].size() > resolueQuery[i].size()) {
-                                minIndex = i;
-                            }
-                        }
-                        // 拷贝值
-                        resolueQuery[minIndex].push_back(resolueQuery[i][j]);
-                        changed = true;
-                    }
-                    resolueQuery[i].erase(resolueQuery[i].begin() + j);
+        volumeNumArr[realVolume]--;
+        volumeNumArr[updateVolume]++;
+        // 调整l
+        
+        if (updateVolume > currMaxVolume)
+        {
+            // 触发l变大  ** 变大后, counter超过之前l的元素需要提交给update list
+            bemm->setMaxVolume(updateVolume);
+        } else if (realVolume == currMaxVolume && volumeNumArr[realVolume] == 0)
+        {
+            // l 变小
+            for (int i = currMaxVolume; i > 0; i--)
+            {
+                if (volumeNumArr[i] != 0)
+                {
+                    bemm->setMaxVolume(i);
+                    break;
                 }
             }
         }
-        return changed;
-    } else {
-        return false;
+        /**************************************** 判断并收缩EMM中元素至符合当前容量 ****************************************/
+        // 调整EMMst
+        SubmitUpdate(key);
     }
-}
 
-void Client::SubmitUpdate(vector<vector<KV>> resolueQuery, const char *key, int *preRandom) {
-    for (int i=0; i<resolueQuery.size(); i++) {
-        ValueEntry ve(resolueQuery[i]);
-        EncryptAndUpload(key, i, ve, preRandom[i]);
+    void SubmitUpdate(const char *key)
+    {
+        for (int i = 0; i < resolvedQueryList.size(); i++)
+        {
+            ValueEntry ve(resolvedQueryList[i]);
+            EncryptAndUpload(key, i, ve, preRandom[i]);
+        }
     }
-}
 
-size_t Client::getMemOverHead() {
-    size_t size = 0;  
-    cout << "==================================================================" << endl;
-    cout << "--------------------------------Client----------------------------" << endl;
-    
-    for (const auto& pair : (*EMMst)) {
-        size += pair.first.length();
-        size += sizeof(uint32_t) * 3;
+    size_t getMemOverHead()
+    {
+        size_t size = 0;
+        cout << "==================================================================" << endl;
+        cout << "--------------------------------Client----------------------------" << endl;
+
+        for (const auto &pair : (*EMMst))
+        {
+            size += pair.first.length();
+            size += sizeof(uint32_t) * 3;
+        }
+        cout << "EMMst:" << size << endl;
+        // volumeNumArr大小
+        size_t volumeNumArrSize = sizeof(uint32_t) * volumeNumArr[0];
+        cout << "volumeNumArr:" << volumeNumArrSize << endl;
+        size += volumeNumArrSize;
+
+        cout << "others" << sizeof(Client) << endl;
+        size += sizeof(Client);
+
+        cout << "sum" << size << endl;
+        // 调用函数统计服务端
+        size += this->bemm->getMemOverhead();
+        cout << "-----------------------------------------------------------------" << endl;
+        cout << "CS总占用空间:" << getMemSizeStr(size) << endl;
+        cout << "==================================================================" << endl;
+        return size;
     }
-    cout << "EMMst:" << size << endl;
-    // volumeNumArr大小
-    size_t volumeNumArrSize = sizeof(uint32_t) * volumeNumArr[0];
-    cout << "volumeNumArr:" << volumeNumArrSize << endl;
-    size += volumeNumArrSize;
-
-    cout << "others" << sizeof(Client) << endl;
-    size += sizeof(Client);
-
-    cout << "sum" << size << endl;
-    // 调用函数统计服务端
-    size += this->bemm->getMemOverhead();
-    cout << "-----------------------------------------------------------------" << endl;
-    cout << "CS总占用空间:" << getMemSizeStr(size) << endl;
-    cout << "==================================================================" << endl;
-    return size;
-}
-
-
-#endif 
+};
+#endif

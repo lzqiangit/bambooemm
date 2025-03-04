@@ -24,8 +24,8 @@ public class MakeData {
         /*=========================== 设置生成随机数的参数 ===========================*/
         sql = "insert into random values (?, ?, ?)";
         // int keyNum = 16384;
-        int maxVolum = (int)Math.pow(2, 9);
-        int n = (int)Math.pow(2, 20);
+        int maxVolum = (int)Math.pow(2, 4);
+        int n = (int)Math.pow(2, 16);
 
         int num = 0;
         int key_index = 0;
@@ -43,18 +43,18 @@ public class MakeData {
             
             key = "key_" + key_index++;
 
-            int curKeyLen = key.length();
-            for (int i=curKeyLen; i<20; i++) {
-                key = 'p' + key;
-            }
+            //int curKeyLen = key.length();
+            // for (int i=curKeyLen; i<20; i++) {
+            //     key = 'p' + key;
+            // }
 
             for (int j=0; j<=valueNum; j++) {
-                value = Integer.toString(counter);
+                value = "value" + Integer.toString(counter);
                 //
-                int curLen = value.length();
-                for (int i=curLen; i<20; i++) {
-                    value = 'p' + value;
-                }
+                // int curLen = value.length();
+                // for (int i=curLen; i<20; i++) {
+                //     value = 'p' + value;
+                // }
 
                 statement.setString(1, key);    // 从1开始
                 statement.setString(2, value);

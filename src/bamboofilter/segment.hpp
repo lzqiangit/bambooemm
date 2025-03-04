@@ -621,7 +621,7 @@ public:
      * 加密value
      * 注意：明文需要算上 \0 的长度啊 !
      */
-    void Encrypt(char *password) {
+    void Encrypt(const char *password) {
         for (int i=0; i<getTagNum(); i++) {
             ValueEntry *valueEP =  getValueP(i);
             if (valueEP->getLen() != 0) {

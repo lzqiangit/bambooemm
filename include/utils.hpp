@@ -8,7 +8,6 @@
 #include <immintrin.h>
 #include <mysql/mysql.h>
 #include <algorithm>
-#include <string.h>
 #include <fstream>
 #include <sstream>  
 #include <string>  
@@ -17,13 +16,19 @@
 #include <openssl/aes.h>
 #include <openssl/rand.h>
 #include <openssl/evp.h> 
-#include "KV.hpp"
-#include "BOBHash.h"
 #include <ctime>
-#include <chrono>
+#include "BOBHash.h"
+
+using std::cout;
+using std::endl;
+using std::vector;
+using std::string;
+using std::max;
+using std::bitset;
+using std::ofstream;
+using std::to_string;
 
 
-using namespace std;
 
 #define AES_BLOCK_SIZE 16  //  
 #define AES_KEY_LENGTH 16
@@ -31,9 +36,8 @@ using namespace std;
 
 typedef unsigned int uint32_t;
 typedef unsigned long int uint64_t;
-typedef chrono::_V2::system_clock::time_point time_point;
 
-
+class KV;
 /**
  * 
  */
@@ -42,7 +46,7 @@ int LenOfUInt(uint32_t num);
 
 
 void GenKey(int level);
-char* LoadKey();
+const char* LoadKey();
 vector<int> LoadVolumn();
 
 void printBinary(char* data, size_t length);
@@ -52,8 +56,8 @@ void print_64title();
 
 char* copy_const_str(const char* cstr);
 
-int aes_encrypt_string(char *_pPassword, char *_pInput, int _InLen, char *_pOutBuf, int *_pOutLen);
-int aes_decrypt_string(char *_pPassword, char *_pInput, int _InLen, char *_pOutBuf, int *_pOutLen);
+int aes_encrypt_string(const char *_pPassword, char *_pInput, int _InLen, char *_pOutBuf, int *_pOutLen);
+int aes_decrypt_string(const char *_pPassword, char *_pInput, int _InLen, char *_pOutBuf, int *_pOutLen);
 
 vector<KV *> LoadKVList(int &n, int &l);
 
