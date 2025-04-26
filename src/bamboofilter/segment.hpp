@@ -201,7 +201,7 @@ private:
         value_p->CpFrom(valueE);
     }
 
-    void AppendValue(uint32_t bucket_id, uint32_t chain_id, uint32_t tag_id, ValueEntry valueE) {
+    void AppendValue(uint32_t bucket_id, uint32_t chain_id, uint32_t tag_id, const ValueEntry &valueE) {
         ValueEntry *value_p = get_value(bucket_id, chain_id, tag_id);
         value_p->AppendValue(valueE.getP());
     }
@@ -216,20 +216,6 @@ private:
         return ret;   
     }
 
-    bool isCrash(char* bucket_p, uint32_t tag) {
-        uint32_t t = tag & kTagMask;
-        for (int idx = 0; idx<4; idx++) {
-
-            bucket_p += idx + (idx >> 1);
-            uint32_t tagp = (*((uint16_t *)bucket_p) >> ((idx & 1) << 2)) & kTagMask;
-            if (tagp == t)
-            {
-                return true;
-            } 
-            
-        }
-        return false;
-    }
 
     /**
      * 判断valueP位置是否为空
@@ -248,39 +234,37 @@ private:
      * tag 指纹
      */
     ValueEntry *LookupValueP(uint32_t cmp, int times, size_t chain_idx, uint32_t tag) const{
-        vector<char*> ret;
         vector<int> tag_indexs = cmp_to_tag_id(cmp);
-        if (tag_indexs.size() > 2) {                               // 后面没问题再简化操作！！！！！！！！！！！！！！！！！！！！！！！！！！！！直接通过一部计算得到index
-            cout << "查询到两个相同的指纹存在于同一个查询路径上！！！ - 1" << endl;
-            exit(-1);
-        }
-
-        if (tag_indexs.size() == 2) {
-            int bucket_id = 0, chain_id = 0, tag_id = 0;
-            for (int i=0; i<2; i++) {
-                int tag_index = tag_indexs[i];
-                tag_index += times * 16;
-                // 计算一个segment中
-                int a_chains_tag_num = chain_capacity * kTagsPerBucket;
-                if (tag_index < a_chains_tag_num)
-                {
-                    bucket_id ^= (int)chain_idx;
-                }
-                else
-                {
-                    tag_index -= a_chains_tag_num;
-                    bucket_id ^= AltIndex(chain_idx, tag);
-                }
-                chain_id ^= tag_index / kTagsPerBucket; // 一个桶中4个tag
-                tag_id ^= tag_index % kTagsPerBucket;
-                ValueEntry *valueE = get_value(bucket_id, chain_id, tag_id);
-                //cout << valueE->getP() << endl;
-            }
-            if (bucket_id != 0 || chain_id != 0 || tag_id != 0) {
-                cout << "查询到两个相同的指纹存在于同一个查询路径上！！！ - 2" << endl;
-                exit(-1);
-            }    
-        }
+        // if (tag_indexs.size() > 2) {                               // 后面没问题再简化操作！！！！！！！！！！！！！！！！！！！！！！！！！！！！直接通过一部计算得到index
+        //     cout << "查询到两个相同的指纹存在于同一个查询路径上！！！ - 1" << endl;
+        //     exit(-1);
+        // }
+        // if (tag_indexs.size() == 2) {
+        //     int bucket_id = 0, chain_id = 0, tag_id = 0;
+        //     for (int i=0; i<2; i++) {
+        //         int tag_index = tag_indexs[i];
+        //         tag_index += times * 16;
+        //         // 计算一个segment中
+        //         int a_chains_tag_num = chain_capacity * kTagsPerBucket;
+        //         if (tag_index < a_chains_tag_num)
+        //         {
+        //             bucket_id ^= (int)chain_idx;
+        //         }
+        //         else
+        //         {
+        //             tag_index -= a_chains_tag_num;
+        //             bucket_id ^= AltIndex(chain_idx, tag);
+        //         }
+        //         chain_id ^= tag_index / kTagsPerBucket; // 一个桶中4个tag
+        //         tag_id ^= tag_index % kTagsPerBucket;
+        //         ValueEntry *valueE = get_value(bucket_id, chain_id, tag_id);
+        //         //cout << valueE->getP() << endl;
+        //     }
+        //     if (bucket_id != 0 || chain_id != 0 || tag_id != 0) {
+        //         cout << "查询到两个相同的指纹存在于同一个查询路径上！！！ - 2" << endl;
+        //         exit(-1);
+        //     }    
+        // }
 
         if (tag_indexs.size() == 0) {
             return nullptr;
@@ -411,7 +395,7 @@ public:
      * curtag 指纹
      * valueE 需要插入的ValueEntry
      */
-    bool Insert(uint32_t chain_idx, uint32_t curtag, ValueEntry valueE)
+    bool Insert(uint32_t chain_idx, uint32_t curtag, ValueEntry &valueE)
     {
         char *bucket_p;
         ValueEntry *value_p;
@@ -636,7 +620,7 @@ public:
      * tag 指纹
      * valueE 加密后的ValueEntry
      */
-    void UpdateValue(uint32_t chain_idx, uint16_t tag, ValueEntry newVE) {
+    void UpdateValue(uint32_t chain_idx, uint16_t tag, const ValueEntry &newVE) {
         vector<char*> valuesP;
         ValueEntry *ve = LookupP(chain_idx, tag);
         ve->CpFrom(newVE);

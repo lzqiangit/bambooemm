@@ -95,7 +95,7 @@ KV &KV::operator=(const KV &others)
 /**
  * 将成员变量以 key|counter|value 的形式拼接成字符串
  */
-char *KV::Splice()
+char *KV::Splice() const
 {
     string counterStr = to_string(this->counter);
     return concat('|', this->key, counterStr.c_str(), this->value, NULL);

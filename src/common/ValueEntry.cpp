@@ -25,6 +25,13 @@ ValueEntry::ValueEntry(const ValueEntry &other)
     }
 }
 
+ValueEntry::ValueEntry(const KV &kv)
+{
+    this->len = 0;
+    char *kcv = kv.Splice();
+    this->AppendValue(kcv);
+}
+
 ValueEntry::ValueEntry(vector<KV> kvs)
 {
     this->len = 0;
@@ -322,3 +329,7 @@ size_t ValueEntry::getMemOverhead()
     return sizeof(int) + sizeof(char *) + len * sizeof(char);
 }
 
+bool ValueEntry::isEmpty() const
+{
+    return this->len == 0;
+}

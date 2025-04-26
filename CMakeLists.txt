@@ -10,7 +10,7 @@ set(CMAKE_BUILD_TYPE "Debug")
 # set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/lib)      # ���ÿ�����ɵ�ַ
 set(XXHASH_LIB "/usr/lib/x86_64-linux-gnu/libxxhash.a")
 
-set(HEADPATH ${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/src/bamboofilter ${PROJECT_SOURCE_DIR}/src/bambooemm)
+set(HEADPATH ${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/src/bamboofilter ${PROJECT_SOURCE_DIR}/src/bambooemm ${PROJECT_SOURCE_DIR}/src/twoch)
 # 将common 目录下的cpp文件加入COMMON_CPP 变量中
 file(GLOB COMMON_CPP ${PROJECT_SOURCE_DIR}/src/common/*.cpp)
 

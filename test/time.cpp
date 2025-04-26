@@ -67,6 +67,8 @@ void Init() {
 // }
 
 // 测试平均的查询时间
+
+
 void tesAverageQuertyTime() {
 
     int MAX_KEY_INDEX = 1033;
@@ -74,21 +76,22 @@ void tesAverageQuertyTime() {
     int times = 0;
     string key;
     //for (int i=0; i<=MAX_KEY_INDEX; i++) {
-        key = "key_";
-        key += to_string(1);
-        key = string(20 - key.length(), 'p') + key;
+        key = "ppppppppppppkey_1055";
+        // key += to_string(1);
+        // key = string(20 - key.length(), 'p') + key;
 
         cout << "开始" << endl;
-        Timer::getInstance().start();
+        //Timer::getInstance().start();
         vector<KV> kvs = client->Query(key.c_str());
-        Timer::getInstance().stop();
+        //Timer::getInstance().stop();
         //sum += getTimeDiff(star, end);
         //times++;
         // cout << getTimeDiff(star, end) << endl;
         // ShowKVList(kvs);
     //}
-    cout << "查询时间:" << Timer::getInstance().getDuration() << "ms" << endl;
-    cout << "平均查询时间: " << sum / times << endl;
+    //cout << "查询时间:" << Timer::getInstance().getDuration() << "ms" << endl;
+    ShowKVList(kvs);
+    //cout << "平均查询时间: " << sum / times << endl;
 }
 
 int main() {

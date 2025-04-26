@@ -27,6 +27,8 @@ public:
 
     ValueEntry(const ValueEntry &other);
 
+    ValueEntry(const KV &kv);
+
     ValueEntry(vector<KV> kvs);
 
     ValueEntry(ValueEntry &&other) noexcept;
@@ -85,5 +87,7 @@ public:
     ValueEntry &operator=(ValueEntry &ve);
 
     size_t getMemOverhead();
+
+    bool isEmpty() const;
 };
 #endif

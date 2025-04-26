@@ -64,7 +64,7 @@ public:
     /**
      * 将成员变量以 key|counter|value 的形式拼接成字符串
      */
-    char *Splice();
+    char *Splice() const;
 
     /**
      * 获取其向服务端发送查询请求所需的key <- hash(key)|counter

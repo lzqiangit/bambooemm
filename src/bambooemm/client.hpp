@@ -224,7 +224,11 @@ public:
         string hashKey = KV::MakeHashKey(key);
         // cout << "生成HashKey的时间:" << Timer::getInstance().getDuration() << "ms" << endl;
         queryList.clear();
+
+        //Timer::getInstance().start();
         queryList = bemm->Query(hashKey);
+        //Timer::getInstance().stop();
+        
         // 去除随机数, 并解析
         ResolveQueryList();
         MakeQueryMap(key);
@@ -286,7 +290,7 @@ public:
                 queryList[i].Dec(mPassword);    // 解密
                 preRandom.push_back(queryList[i].DivRandom()); // 去除随机数, 《需要记录下来, 然后防止生成的随机数同上次相同》
                 // 解析value值
-                vector<char *> values = queryList[i].DivValue();
+                vector<char*> values = queryList[i].DivValue();
                 vector<KV> kvs = KV::LoadKVList(values);
                 resolvedQueryList.push_back(kvs);
             } else {

@@ -90,18 +90,21 @@ public:
     {
         vector<ValueEntry> ret;
         uint32_t seg_index, bucket_index, tag;
+        Timer::getInstance().start();
         for (int i = 0; i < max_volume; i++)
         {
-            // cout << "生成加密关键字前:" << Timer::getInstance().getDuration() << "ms" << endl;
+            
             char *hashKey_counter = KV::MakeSearchKey(hashKey, i); // 这个逻辑移动至Client中!!!
-            // cout << "生成加密关键字:" << Timer::getInstance().getDuration() << "ms" << endl;
+            //cout << "生成加密关键字:" << Timer::getInstance().getDuration() << "ms" << endl;
             ValueEntry valueE;
+            
             bf->Lookup(hashKey_counter, valueE);
-            // cout << "查询一个关键字:" << Timer::getInstance().getDuration() << "ms" << endl;
+            
             ret.push_back(valueE);
-            // break;
+            break;
         }
-        cout << "返回前:" << Timer::getInstance().getDuration() << "ms" << endl;
+        cout << "查询一个关键字:" << Timer::getInstance().getDuration() << "ms" << endl;
+
         return ret;
     }
 
