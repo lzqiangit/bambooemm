@@ -34,7 +34,7 @@ int main(int argc, char const *argv[])
 
     cout << "+++++++++++++++++++++++++++++++++++++++" << endl;
 
-    sout( client->Query("key_100") );
+    sout( client->Query("key_4036") );
 
 
     delete client;

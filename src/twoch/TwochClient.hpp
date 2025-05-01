@@ -3,12 +3,14 @@
 
 #include <vector>
 #include <xxhash.h>
+#include <unordered_map>
 
 #include "KV.hpp"
 #include "TwoCH.hpp"
 
 typedef unsigned int uint32_t;
 using std::vector;
+using std::unordered_map;
 
 class TwochClient
 {
@@ -18,7 +20,7 @@ private:
     const char* mKEnc = "135790";
 
     TwoCH *mTwoch;          // 主存储结构
-    //TODO 溢出栈
+    unordered_map<string, vector<KV>> mOverflowStack;   // 分别存储
 public:
     TwochClient() {
         cout << "TwochClient, 正常运行!!!" << endl;
@@ -45,8 +47,12 @@ public:
             valueE.SpliceRandom();
             valueE.Enc(mKEnc);
             uint32_t fk = getFK(kvList.at(i)->key, strlen(kvList.at(i)->key));
-            mTwoch->Insert(fk, counter, valueE);
-
+            bool ret = mTwoch->Insert(fk, counter, valueE);
+            if (!ret) {
+                // 插入失败，添加到溢出栈中
+                mOverflowStack[kvList.at(i)->key].push_back(*kvList.at(i));
+                cout << "Insert To OverflowStack:" << kvList.at(i)->key << "-" << kvList.at(i)->counter << endl;
+            }
         }
     }
 
@@ -78,6 +84,16 @@ public:
                 //cout << "Query: NULL" << endl;
             }
             
+        }
+        // 查询溢出栈
+        auto it = mOverflowStack.find(key);
+        if (it != mOverflowStack.end()) {
+            vector<KV> overflowKvs = it->second;
+            for (auto kv : overflowKvs) {
+                if (strcmp(kv.key, key) == 0) {
+                    queryResult.push_back(kv);
+                }
+            }
         }
         return queryResult;
     }   
