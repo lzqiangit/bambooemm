@@ -4,21 +4,23 @@
 #include "ValueEntry.hpp"
 class Update;
 
-class UpdateEntry : public ValueEntry
+class UpdateEntry
 {
+public:
+    char* value;
+    int len;
 
 public:
     // 拷贝构造函数
-    UpdateEntry(const UpdateEntry &other);
+    UpdateEntry(const char *value, int len);
 
-    UpdateEntry(const Update &update);
+    /**
+     * @brief 将UpdateEntry转换为Update
+     * @param password 密码
+     */
+    Update toUpdate(const char* password);
 
-    UpdateEntry(const KV &kv, char op);
-
-    ~UpdateEntry() override;
-
-    // 重载等于运算符
-    UpdateEntry &operator=(const UpdateEntry &other);
+    size_t getMemOverhead();
 };
 
 #endif

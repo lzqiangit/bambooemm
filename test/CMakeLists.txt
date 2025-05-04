@@ -24,3 +24,8 @@ add_executable(twoch twoch.cpp ${COMMON_CPP})
 target_include_directories(twoch PUBLIC ${HEADPATH} ${OPENSSL_INCLUDE_DIR})
 target_link_libraries(twoch PUBLIC mysqlclient ${OPENSSL_LIBRARIES} ${XXHASH_LIB})
 target_compile_options(twoch PUBLIC "-mavx2")
+
+add_executable(testutils testutils.cpp ${COMMON_CPP})
+target_include_directories(testutils PUBLIC ${HEADPATH} ${OPENSSL_INCLUDE_DIR})
+target_link_libraries(testutils PUBLIC mysqlclient ${OPENSSL_LIBRARIES} ${XXHASH_LIB})
+target_compile_options(testutils PUBLIC "-mavx2")

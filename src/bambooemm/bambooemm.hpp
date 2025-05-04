@@ -101,9 +101,8 @@ public:
             bf->Lookup(hashKey_counter, valueE);
             
             ret.push_back(valueE);
-            break;
         }
-        cout << "查询一个关键字:" << Timer::getInstance().getDuration() << "ms" << endl;
+        //cout << "查询一个关键字:" << Timer::getInstance().getDuration() << "ms" << endl;
 
         return ret;
     }
@@ -154,7 +153,7 @@ public:
         return bf->Insert(KV::MakeSearchKey(hashKey, counter), valueE);
     }
 
-    void AddUpdata(const uint32_t y, const UpdateEntry ue)
+    void AddUpdata(const uint32_t y, const UpdateEntry& ue)
     {
         uint32_t pos = y % EMMU_SIZE;
         if (EMMu[pos] != nullptr)

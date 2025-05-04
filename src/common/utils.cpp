@@ -53,16 +53,16 @@ vector<int> LoadVolumn()
     return volumeList;
 }
 
-int LenOfInt(int num)
-{
-    int len = 1;
-    while (num >= 10)
-    {
-        ++len;
-        num /= 10;
-    }
-    return len;
-}
+// int LenOfInt(int num)
+// {
+//     int len = 1;
+//     while (num >= 10)
+//     {
+//         ++len;
+//         num /= 10;
+//     }
+//     return len;
+// }
 
 int LenOfUInt(uint32_t num)
 {
@@ -197,7 +197,7 @@ char *copy_const_str(const char *cstr)
 *   注意: 传入的指针需要提前申请空间,否则会报Segmentation fault
 *****************************************************************************************
 */
-int aes_encrypt_string(const char *_pPassword, char *_pInput, int _InLen, char *_pOutBuf, int *_pOutLen)
+int aes_encrypt_string(const char *_pPassword, const char *_pInput, int _InLen, char *_pOutBuf, int *_pOutLen)
 {
     // 上下文结构
     EVP_CIPHER_CTX *pEn_ctx = NULL;
@@ -282,7 +282,7 @@ clean:
 *   返 回 值: 0：成功, -1：失败
 *****************************************************************************************
 */
-int aes_decrypt_string(const char *_pPassword, char *_pInput, int _InLen, char *_pOutBuf, int *_pOutLen)
+int aes_decrypt_string(const char *_pPassword, const char *_pInput, int _InLen, char *_pOutBuf, int *_pOutLen)
 {
     // 上下文结构
     EVP_CIPHER_CTX *pDe_ctx = NULL;

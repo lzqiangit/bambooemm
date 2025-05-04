@@ -56,8 +56,8 @@ void print_64title();
 
 char* copy_const_str(const char* cstr);
 
-int aes_encrypt_string(const char *_pPassword, char *_pInput, int _InLen, char *_pOutBuf, int *_pOutLen);
-int aes_decrypt_string(const char *_pPassword, char *_pInput, int _InLen, char *_pOutBuf, int *_pOutLen);
+int aes_encrypt_string(const char *_pPassword, const char *_pInput, int _InLen, char *_pOutBuf, int *_pOutLen);
+int aes_decrypt_string(const char *_pPassword, const char *_pInput, int _InLen, char *_pOutBuf, int *_pOutLen);
 
 vector<KV *> LoadKVList(int &n, int &l);
 

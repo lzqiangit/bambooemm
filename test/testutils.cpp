@@ -2,6 +2,9 @@
 #include "utils.hpp"
 #include <climits>
 #include "Timer.hpp"
+#include "Update.hpp"
+#include "UpdateEntry.hpp"
+
 using namespace std;
 
 int LenOfInt(int num) {
@@ -31,19 +34,10 @@ int LenOfIntFast(int num) {
 
 int main()
 {
-    Timer::getInstance().start();
-    for (int i = 0; i < 10000000; i++) {
-        LenOfInt(i);
-    }
-    Timer::getInstance().stop();
-    cout << "LenOfInt: " << Timer::getInstance().getDuration() << "ms" << endl;
-
-    Timer::getInstance().start();
-    for (int i = 0; i < 10000000; i++) {
-        LenOfIntFast(i);
-    }
-    Timer::getInstance().stop();
-    cout << "LenOfIntFast: " << Timer::getInstance().getDuration() << "ms" << endl;
-
+    Update update('A', "Hello", 5);
+    UpdateEntry updateEntry = update.toUpdateEntry("password");
+    cout << updateEntry.value << endl;
+    Update dec = updateEntry.toUpdate("password");
+    cout << dec.op << " " << dec.value << " " << dec.len << endl;
     return 0;
 }

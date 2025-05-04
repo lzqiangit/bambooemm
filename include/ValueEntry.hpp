@@ -52,9 +52,9 @@ public:
     /**
      * 在value后拼接字符串
      */
-    void Append(char *append);
+    void Append(const char *append);
 
-    void AppendValue(char *append);
+    void AppendValue(const char *append);
 
     void erase();
 

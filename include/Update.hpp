@@ -7,16 +7,41 @@ class UpdateEntry;
 /**
  * UpdateEntry 存储 OP,newValueEntry
  */
-class Update : public KV
+class Update
 {
 public:
     char op;
-    Update(const KV kv, char op);
-    // 拷贝构造函数
-    Update(const Update &other);
-    Update(char op, const char* key, int counter, const char* value);
+    int len;
+    char *value;
+public:
+    Update(char op, const char *value, int len);
+
     ~Update();
-    static Update ResolveFromUpdateEntry(const UpdateEntry& ue);
-    static vector<Update> ResolveFromUpdateEntries(vector<UpdateEntry> updateList, const char* password);
+
+    // 拷贝构造函数
+    Update(const Update &other) {
+        op = other.op;
+        len = other.len;
+        value = new char[len + 1];
+        memcpy(value, other.value, len);
+        value[len] = '\0';
+    }
+    Update &operator=(const Update &other) {
+        if (this != &other) {
+            delete[] value;
+            op = other.op;
+            len = other.len;
+            value = new char[len + 1];
+            memcpy(value, other.value, len);
+            value[len] = '\0';
+        }
+        return *this;
+    }
+    
+    /**
+     * @brief 拼接, 添加随机数, 加密。将UpdateEntry转换为Update
+     * @param password 密码
+     */
+    UpdateEntry toUpdateEntry(const char *password) const;
 };
 #endif

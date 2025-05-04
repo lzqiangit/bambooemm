@@ -43,13 +43,14 @@ int InputNum(string name) {
     return num;
 }
 
-void ShowKVList(vector<KV> kvs) {
+void ShowKVList(string key, vector<string> vals) {
+    int counter = 0;
     cout << endl;
     cout << "=================================================================" << endl;
     cout << "KEY" << "\t" << "COUNTER" << "\t" << "VALUE" << endl;
     cout << "-----------------------------------------------------------------" << endl;
-    for (auto kv : kvs) {
-        cout << kv.key << "\t" << kv.counter << "\t" << kv.value << endl;
+    for (auto val : vals) {
+        cout << key << "\t" << counter++ << "\t" << val << endl;
     }
     cout << "=================================================================" << endl;
     cout << endl;
@@ -72,13 +73,11 @@ int main(int argc, char const *argv[])
     int counter;
     string keyStr;
     string valStr;
-    KV *kcv;
+    string value;
     ValueEntry valE;
 
     showMenu();
     while (true) {
-        kcv = nullptr;
-
         cout << "BEMM$ ";
         cin >> comm;
         unordered_map<string, unordered_map<string, size_t>> overhead;
@@ -87,29 +86,19 @@ int main(int argc, char const *argv[])
         case 'S':
         case 's':
             keyStr = InputStr("key");
-            ShowKVList(client->Query((char*)keyStr.c_str()));
+            ShowKVList(keyStr, client->Query(keyStr.c_str()));
             break;
         case 'I':
         case 'i':
             keyStr = InputStr("key");
             valStr = InputStr("value");
-            kcv = new KV(keyStr.c_str(), PADDING_COUNTER, valStr.c_str());
-            client->Update((char*)keyStr.c_str() , OP_INSERT, *kcv);
+            client->Update(keyStr.c_str() , Update(OP_INSERT, valStr.c_str(), valStr.size()));
             break;
         case 'D':
         case 'd':
             keyStr = InputStr("key");
-            counter = InputNum("counter");
-            kcv = new KV(keyStr.c_str(), counter, PADDING_VALUE);
-            client->Update((char*)keyStr.c_str(), OP_DELETE, *kcv);
-            break;
-        case 'E':
-        case 'e':
-            keyStr = InputStr("key");
-            counter = InputNum("counter");
-            valStr = InputStr("value");
-            kcv = new KV(keyStr.c_str(), counter, valStr.c_str());
-            client->Update((char*)keyStr.c_str(), OP_EDIT, *kcv);
+            
+            client->Update((char*)keyStr.c_str(), Update(OP_DELETE, valStr.c_str(), valStr.size()));
             break;
         case 'C':
         case 'c':
@@ -138,7 +127,6 @@ int main(int argc, char const *argv[])
             showMenu();
             break;
         }
-        if (kcv != nullptr) delete kcv;
     }
 
     return 0;

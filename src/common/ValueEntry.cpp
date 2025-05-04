@@ -64,6 +64,11 @@ ValueEntry::~ValueEntry()
     }
 }
 
+/**
+ * 设置value（长度需要算上终止符\0）
+ * @param len value长度
+ * @param p value指针
+ */
 void ValueEntry::SetValue(int len, char *p)
 {
     if (this->len != 0)
@@ -71,8 +76,8 @@ void ValueEntry::SetValue(int len, char *p)
         delete[] this->p;
     }
     this->len = len;
-    this->p = new char[len + 1];
-    memcpy(this->p, p, len + 1);
+    this->p = new char[len];
+    memcpy(this->p, p, len);
 }
 
 /**
@@ -144,7 +149,7 @@ void ValueEntry::CpFrom(ValueEntry ve)
 /**
  * 在value后拼接字符串
  */
-void ValueEntry::Append(char *append)
+void ValueEntry::Append(const char *append)
 {
     string after;
     if (this->len > 0)
@@ -168,7 +173,7 @@ void ValueEntry::Append(char *append)
     memcpy(p, (char *)after.c_str(), len);
 }
 
-void ValueEntry::AppendValue(char *append)
+void ValueEntry::AppendValue(const char *append)
 {
 
     string after;
@@ -207,7 +212,7 @@ void ValueEntry::erase()
 bool ValueEntry::Enc(const char *password)
 {
 
-    int encLen = ((this->len + 15) / 16 + 1) * 16;
+    int encLen = ((this->len + 1 + 15) / 16 + 1) * 16;
     char *encVals = new char[encLen];
     int retEncLen; // 调试无误可以删除！！！！！
     if (-1 == aes_encrypt_string(password, this->p, this->len, encVals, &retEncLen))
