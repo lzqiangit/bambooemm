@@ -60,6 +60,13 @@ KV::KV(char *kcv)
     char *counter = strtok(nullptr, "|");
     char *value = strtok(nullptr, "|");
     this->key = strdup(key);
+    if (value == nullptr)
+    {
+        this->value = new char[2];
+        this->value[0] = 'P';
+        this->value[1] = '\0';
+        return;
+    }
     this->value = strdup(value);
     this->counter = atoi(counter);
 }
@@ -167,6 +174,11 @@ vector<KV> KV::LoadKVList(vector<char *> kvStrList)
     vector<KV> ret;
     for (char *kvStr : kvStrList)
     {
+        // 包含'|'的字符串
+        if (strchr(kvStr, '|') == nullptr)
+        {
+            continue;
+        }
         KV kv(kvStr);
         ret.push_back(kv);
     }

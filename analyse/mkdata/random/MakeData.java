@@ -24,8 +24,8 @@ public class MakeData {
         /*=========================== 设置生成随机数的参数 ===========================*/
         sql = "insert into random values (?, ?, ?)";
         // int keyNum = 16384;
-        int maxVolum = (int)Math.pow(2, 7);
-        int n = (int)Math.pow(2, 18);
+        int maxVolum = (int)Math.pow(2, 15); // 7
+        int n = (int)Math.pow(2, 22);       // 
 
         int num = 0;
         int key_index = 0;
@@ -42,7 +42,6 @@ public class MakeData {
             } while (valueNum == 0);
             
             key = "key_" + key_index++;
-
             //int curKeyLen = key.length();
             // for (int i=curKeyLen; i<20; i++) {
             //     key = 'p' + key;
@@ -72,10 +71,12 @@ public class MakeData {
             }      
             
         }
+
         statement.executeBatch();
         statement.clearBatch();
         statement.close();
         connection.close();
         System.out.println("成功添加" + counter + "条记录！");
+        System.out.println("key的最大值为：" + (--key_index));
     }
 }

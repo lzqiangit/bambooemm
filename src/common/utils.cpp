@@ -492,3 +492,13 @@ char *concat(char delim, const char *first, ...)
 
     return buffer;
 }
+
+void SaveToCSV(vector<pair<size_t, double>> timeList, string filename, string title) {
+    ofstream outfile;
+    outfile.open("/home/lzq/code/bambooemm/analyse/csv/" + filename);
+    outfile << title << endl;
+    for (auto t : timeList) {
+        outfile << t.first << "," << t.second << endl;
+    }
+    outfile.close();
+}

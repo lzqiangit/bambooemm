@@ -4,6 +4,9 @@
 #include "FullBinaryTree.hpp"
 #include <cmath>
 #include <xxhash.h>
+#include "UpdateEntry.hpp"
+
+#define EMMU_SIZE 4096
 /**
  * 2CH_FB方案
  */
@@ -18,6 +21,8 @@ private:
     int mMaxVolume;   // 最大容量
 
     const int TCH_C = 1; // 参数c
+
+    UpdateEntry *EMMu[EMMU_SIZE];
 
 public:
     /**
@@ -36,6 +41,11 @@ public:
         {
             mFullBinaryTree[i].setup(mSTreeHeight);
         }
+        // 创建EMMu
+        for (int i = 0; i < EMMU_SIZE; i++)
+        {
+            EMMu[i] = nullptr;
+        }
     }
     /**
      * 析构函数
@@ -43,6 +53,13 @@ public:
     ~TwoCH()
     {
         delete[] mFullBinaryTree;
+        for (int i = 0; i < EMMU_SIZE; i++)
+        {
+            if (EMMu[i] != nullptr)
+            {
+                delete EMMu[i];
+            }
+        }
     }
 
     /**
@@ -78,7 +95,6 @@ public:
                 return true;
             }
         }
-        //TODO 插入失败需要添加到溢出栈之中
         return false;
     }
 
@@ -89,10 +105,11 @@ public:
      */
     vector<ValueEntry> Query(uint32_t FK) {
         vector<ValueEntry> result;
-        for (int i=0; i<=1; i++) {
-            // 级联j||i计算哈希,
-            // 遍历最大容量
-            for (int j=0; j<mMaxVolume; j++) {
+        // 遍历最大容量
+        for (int j=0; j<mMaxVolume; j++) {
+            // 遍历两种可能
+            for (int i=0; i<=1; i++) {
+            // 级联j||i计算哈希,            
                 const char* concat = concatInt(j, i); 
                 int len = strlen(concat);
                 uint32_t b = XXH32(concat, len, FK);
@@ -111,10 +128,65 @@ public:
             }
             
         }
-        //TODO 插入失败需要添加到溢出栈之中
         return result;
     }
 
+    void AddUpdata(const uint32_t y, const UpdateEntry& ue)
+    {
+        uint32_t pos = y % EMMU_SIZE;
+        if (EMMu[pos] != nullptr)
+        {
+            cout << "【ERROR】" << "EMMu哈希碰撞!!";
+            return;
+        }
+        EMMu[pos] = new UpdateEntry(ue);
+    }
+
+    vector<UpdateEntry> GetUpdataList(uint32_t x, int cnt)
+    {
+        vector<UpdateEntry> ret;
+        int pos;
+        for (int i = 0; i < cnt; i++)
+        {
+            uint32_t y = GetYHash(x, i);
+            pos = y % EMMU_SIZE;
+            ret.push_back(*(EMMu[pos]));
+            // 查找后就清空
+            delete EMMu[pos];
+            EMMu[pos] = nullptr;
+        }
+        return ret;
+    }
+
+    uint32_t getMaxVolume() {
+        return this->mMaxVolume;
+    }
+
+    void ClearByFk(uint32_t fk) {
+        for (int i=0; i<=1; i++) {
+            // 级联j||i计算哈希,
+            // 遍历最大容量
+            for (int j=0; j<mMaxVolume; j++) {
+                const char* concat = concatInt(j, i); 
+                int len = strlen(concat);
+                uint32_t b = XXH32(concat, len, fk);
+                // 计算树编号和叶子节点编号
+                /**
+                 * 32位的哈希值, 其中, 树的高度固定, 所以每一棵树的叶子节点固定
+                 * 主存储结构拥有的树的数量也是可知的
+                 * 低(mSTreeHeight-1)位表示子树的叶节点编号
+                 * 高clie(log(mSTreeNum))表示子树编号
+                 */
+                int treeIndex = (b >> (mSTreeHeight - 1)) % mSTreeNum; // 子树编号
+                mFullBinaryTree[treeIndex].ClearByHashValue(b);
+            }
+            
+        }
+    }
+
+    int getTreeHeight() {
+        return this->mSTreeHeight;
+    }
 
 private:
     const char* concatInt(int a, int b) {

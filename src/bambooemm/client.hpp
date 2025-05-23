@@ -43,6 +43,9 @@ private:
      */
     uint32_t *volumeNumArr; // 存储某一容量的key的数量  第0号位置存储数组大小
     int mCapacitySize;
+public:
+
+    vector<pair<size_t, double>> mCsvData;
 
 public:
     Client(/* args */)
@@ -134,7 +137,7 @@ public:
                     // cout << "OKKKKKKKKKKKK! : " << kv->key << "||" << kv->counter << endl;
                     ++passCounter;
                 }
-                // delete kv;            // ? 泄露?????
+                delete kv;            // ? 泄露?????
             }
         }
         cout << "共用填充:" << passCounter << "|" << 228601 << "(" << (float)passCounter / 228601.f * 100.f << "%)" << endl;
@@ -172,6 +175,7 @@ public:
         {
             bemm->Insert(hashKey, counter, valueE);
         }
+        delete[] searchKey;
     }
 
     /**
@@ -206,8 +210,17 @@ public:
     {
         string hashKey = KV::MakeHashKey(key);
 
+
+        Timer::getInstance().start();
         queryRet = bemm->Query(hashKey);
-        
+        Timer::getInstance().stop();
+        // 计算返回结果大小
+        size_t querySize = 0;
+        for (auto qr : queryRet)
+        {
+            querySize += qr.len;
+        }
+        mCsvData.push_back(make_pair(querySize, Timer::getInstance().getDuration()));
         // 去除随机数, 并解析成value和value_bar
         ResolveQueryList(key);
 
@@ -232,17 +245,17 @@ public:
         return XXH32(key, strlen(key), mSu);
     }
 
-    char *SpliceOpVal(char op, uint32_t counter, char *val)
-    {
-        stringstream ss;
+    // char *SpliceOpVal(char op, uint32_t counter, char *val)
+    // {
+    //     stringstream ss;
 
-        ss << op << "|" << counter << "|" << val;
-        string splice = ss.str();
-        char *ret = new char[splice.length() + 1];
-        memset(ret, 0, splice.length() + 1);
-        memcpy(ret, splice.c_str(), splice.length());
-        return ret;
-    }
+    //     ss << op << "|" << counter << "|" << val;
+    //     string splice = ss.str();
+    //     char *ret = new char[splice.length() + 1];
+    //     memset(ret, 0, splice.length() + 1);
+    //     memcpy(ret, splice.c_str(), splice.length());
+    //     return ret;
+    // }
     /**
      * @brief 将查询结果解析位value和valueBar
      * @param aimKey 目标关键字
@@ -257,14 +270,19 @@ public:
         int queryLen = queryRet.size();
         for (int i = 0; i < queryLen; i++)
         { // 使用引用才能真正实现queryList中元素的解密
+            queryValueBar.push_back(ValueEntry());
             if (queryRet[i].len > 0)
             {
-                queryValueBar.push_back(ValueEntry());
                 queryRet[i].Dec(mPassword);
                 queryRet[i].DivRandom();
             
                 vector<char*> values = queryRet[i].DivValue();
                 vector<KV> kvs = KV::LoadKVList(values);
+                // 释放values
+                for (auto v : values)
+                {
+                    delete[] v;
+                }
 
                 // 遍历其中每个元素, 提取其中的目标关键字value, 将无关的值再次存储到queryValueBar中
                 for (auto kv : kvs)

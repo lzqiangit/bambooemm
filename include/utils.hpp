@@ -36,6 +36,7 @@ using std::to_string;
 
 typedef unsigned int uint32_t;
 typedef unsigned long int uint64_t;
+using std::pair;
 
 class KV;
 /**
@@ -71,4 +72,5 @@ string getMemSizeStr(size_t size);
 // 拼接char*字符串
 char* concat(char delim, const char* first, ...);
 // 
+void SaveToCSV(vector<pair<size_t, double>> timeList, string filename, string title);
 #endif

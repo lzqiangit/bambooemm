@@ -16,7 +16,6 @@ ValueEntry::ValueEntry(const ValueEntry &other)
 {
     /** 拷贝构造函数中不能再传递同类对象,否则会造成递归调用,死循环 */
     // 深拷贝
-
     len = other.getLen();
     if (len != 0)
     {
@@ -275,6 +274,7 @@ int ValueEntry::DivRandom()
     string substring = valueEStr.substr(0, end);
     char *tempValue = copy_const_str(substring.c_str());
     this->SetValue(strlen(tempValue) + 1, tempValue);
+    delete[] tempValue;
     string randomStr = valueEStr.substr(end + 1, valueEStr.length());
     return atoi(randomStr.c_str());
 }

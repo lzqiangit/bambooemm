@@ -72,6 +72,21 @@ public:
         int index = (b & mLeftIndexMask) + mFirstLeftIndex;
         return GetValueEntries(index);
     }
+
+    void ClearByHashValue(int b) {
+        int index = (b & mLeftIndexMask) + mFirstLeftIndex;
+        if (index < mFirstLeftIndex)
+        {
+            cout << "非叶子节点, 不能进行清空！" << endl;
+            return;
+        }
+        while (index >= 0)
+        {
+            mValueEntries[index].erase();
+            if (index == 0) break;
+            index = (index - 1) / 2;
+        }
+    }
 private:
     /**
      * 获取叶节点index到根节点的路径上的所有元素
@@ -125,6 +140,8 @@ private:
         
         return false;
     }
+
+
 };
 
 #endif
