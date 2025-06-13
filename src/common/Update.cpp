@@ -1,6 +1,14 @@
 #include "Update.hpp"
 #include "UpdateEntry.hpp"
 
+Update::Update()
+{
+    this->len = 1;
+    this->op = 'P'; // 默认操作为插入
+    this->value = new char[2];
+    this->value[0] = 'P';
+    this->value[1] = '\0'; // 确保字符串以'\0'结尾
+}
 
 Update::Update(char op, const char *value, int len)
 {
@@ -10,6 +18,8 @@ Update::Update(char op, const char *value, int len)
     memcpy(this->value, value, len);
     this->value[len] = '\0';
 }
+
+
 
 // 析构函数
 Update::~Update()

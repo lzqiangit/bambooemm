@@ -2,6 +2,7 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
+#include <string>
 #include "client.hpp"
 using namespace std;
 
@@ -30,12 +31,7 @@ void Init() {
     cout << "初始化EMM..." << endl;
     client = new Client();
 
-    Timer::getInstance().start();
     client->SetupEMM(kvList, n, l);
-    Timer::getInstance().stop();
-    // 计算存储空间
-    client->getMemOverHead();
-    cout << "Bamboo初始化耗时:" << Timer::getInstance().getDuration() << endl;
 
     cout << "初始化完成!!!" << endl;
     // 清除kvList
@@ -49,13 +45,31 @@ void Init() {
 int main() {
 
     Init();
+    cout << "扩展次数" << client->getExtendCount() << endl;
 
-    vector<pair<int, double>> timeList;
-    for (int i=0; i<=2036; i++) {    // TODO
-        string key = "key_" + to_string(i);
-        client->Query(key.c_str());
-    }
-    SaveToCSV(client->mCsvData, "setup_init_size_11.csv", "key,time"); // TODO
+
+    // Update update = Update('I', "new_value", 9);
+
+
+
+
+    // int times = 14;
+    // double uploadTime = 0;
+    // double queryTime = 0;
+ 
+    // for (int i=0; i<=times; i++) {
+    //     string key = "key_" + to_string(i);
+    //     Timer::getInstance().start();
+    //     client->UploadUpdate(key.c_str(), update);
+    //     Timer::getInstance().stop();
+    //     uploadTime += Timer::getInstance().getDuration();
+
+    //     queryTime += client->Query(key.c_str());
+    // }
+    // cout << "上传耗时:" << uploadTime/times << endl;
+    // cout << "融合耗时:" << queryTime/times << endl;
+    
+    
 
     delete client;
     return 0;

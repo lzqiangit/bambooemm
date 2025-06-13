@@ -22,7 +22,7 @@ private:
 
     const int TCH_C = 1; // 参数c
 
-    UpdateEntry *EMMu[EMMU_SIZE];
+    vector<UpdateEntry> EMMu[EMMU_SIZE];
 
 public:
     /**
@@ -44,22 +44,15 @@ public:
         // 创建EMMu
         for (int i = 0; i < EMMU_SIZE; i++)
         {
-            EMMu[i] = nullptr;
+            EMMu[i] = vector<UpdateEntry>();
         }
-    }
+    }   
     /**
      * 析构函数
      */
     ~TwoCH()
     {
         delete[] mFullBinaryTree;
-        for (int i = 0; i < EMMU_SIZE; i++)
-        {
-            if (EMMu[i] != nullptr)
-            {
-                delete EMMu[i];
-            }
-        }
     }
 
     /**
@@ -131,29 +124,37 @@ public:
         return result;
     }
 
-    void AddUpdata(const uint32_t y, const UpdateEntry& ue)
+    void AddUpdata(const uint32_t y, const vector<UpdateEntry>& ue)
     {
         uint32_t pos = y % EMMU_SIZE;
-        if (EMMu[pos] != nullptr)
+        if (EMMu[pos].size() > 0)
         {
             cout << "【ERROR】" << "EMMu哈希碰撞!!";
             return;
         }
-        EMMu[pos] = new UpdateEntry(ue);
+        // 拷贝ue到EMMu[pos]
+        for (const auto& entry : ue)
+        {
+            EMMu[pos].push_back(entry);
+        }
     }
 
-    vector<UpdateEntry> GetUpdataList(uint32_t x, int cnt)
+    vector<vector<UpdateEntry>> GetUpdataList(uint32_t x, int cnt)
     {
-        vector<UpdateEntry> ret;
+        vector<vector<UpdateEntry>> ret;
         int pos;
         for (int i = 0; i < cnt; i++)
         {
+            // 每次都需要返回l个
+            ret.push_back(vector<UpdateEntry>());
             uint32_t y = GetYHash(x, i);
             pos = y % EMMU_SIZE;
-            ret.push_back(*(EMMu[pos]));
+            for (auto& entry : EMMu[pos])
+            {
+                ret[i].push_back(entry);
+            }
             // 查找后就清空
-            delete EMMu[pos];
-            EMMu[pos] = nullptr;
+            EMMu[pos].clear();
         }
         return ret;
     }
@@ -186,6 +187,20 @@ public:
 
     int getTreeHeight() {
         return this->mSTreeHeight;
+    }
+
+    size_t getMemOverhead()
+    {
+
+        size_t mySize = 0;
+
+        cout << "-----------------------------Server-------------------------------" << endl;
+        for (int i=0; i<mSTreeNum; i++) {
+            mySize += mFullBinaryTree[i].getMemOverhead();
+        }
+        mySize += sizeof(TwoCH);
+        cout << "Server总空间:" << getMemSizeStr(mySize) << endl;
+        return mySize;
     }
 
 private:

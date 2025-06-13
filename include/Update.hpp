@@ -14,6 +14,9 @@ public:
     int len;
     char *value;
 public:
+
+    Update();
+
     Update(char op, const char *value, int len);
 
     ~Update();

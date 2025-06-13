@@ -331,7 +331,7 @@ ValueEntry &ValueEntry::operator=(ValueEntry &ve)
 
 size_t ValueEntry::getMemOverhead()
 {
-    return sizeof(int) + sizeof(char *) + len * sizeof(char);
+    return sizeof(ValueEntry) + len * sizeof(char);
 }
 
 bool ValueEntry::isEmpty() const

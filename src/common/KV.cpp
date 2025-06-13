@@ -185,6 +185,17 @@ vector<KV> KV::LoadKVList(vector<char *> kvStrList)
     return ret;
 }
 
+size_t KV::getMemOverhead() const
+{
+    // 计算消耗空间的大小
+    size_t overhead = 0;
+    overhead += sizeof(KV); // KV对象本身的大小
+    overhead += strlen(this->key);
+    overhead += strlen(this->value);
+    overhead += sizeof(int); // counter的大小
+    return overhead;
+}
+
 char *KV::copy_const_str(const char *cstr)
 {
     int len = strlen(cstr);

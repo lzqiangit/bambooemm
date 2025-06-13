@@ -187,7 +187,7 @@ public:
      * EMMst[label][1]++;
      * 重写更新：更新只用存储op||value即可(不加key可能会碰撞！)
      */
-    void Update(const char *key, const Update& update)
+    void UploadUpdate(const char *key, const Update& update)
     {
         // 在st中找不到key,需要初始化
         if (EMMst->find(key) == EMMst->end())
@@ -206,22 +206,25 @@ public:
         bemm->AddUpdata(y, UpdateEntry);
     }
 
-    vector<string> Query(const char *key)
+    // vector<string>
+    double Query(const char *key)
     {
         string hashKey = KV::MakeHashKey(key);
 
 
-        Timer::getInstance().start();
+       
         queryRet = bemm->Query(hashKey);
-        Timer::getInstance().stop();
+        
         // 计算返回结果大小
         size_t querySize = 0;
         for (auto qr : queryRet)
         {
             querySize += qr.len;
         }
-        mCsvData.push_back(make_pair(querySize, Timer::getInstance().getDuration()));
-        // 去除随机数, 并解析成value和value_bar
+        //mCsvData.push_back(make_pair(querySize, Timer::getInstance().getDuration()));
+        // 去除随机数, 并解析成value和value_bar 
+        
+        Timer::getInstance().start();
         ResolveQueryList(key);
 
         uint32_t cnt = 0;
@@ -235,8 +238,9 @@ public:
             }
         }
         // 解析结果并返回
-
-        return queryValue;
+        Timer::getInstance().stop();
+        return Timer::getInstance().getDuration();
+        //return queryValue;
     }
 
     /**********************************************  Splice  *******************************************************************/
@@ -314,82 +318,82 @@ public:
         for (auto ue : ues) {
             updates.push_back(ue.toUpdate(mPassword));
         }
-        // 定义辅助变量
-        uint32_t curMaxVolume = bemm->getMaxVolume(); // 用于统计更新操作对容量的影响
-        uint32_t thisKeyVolume = queryValue.size(); // 用于统计当前key的容量
-        int changeVolume = 0; // 用于统计当前key的容量变化
+        // // 定义辅助变量
+        // uint32_t curMaxVolume = bemm->getMaxVolume(); // 用于统计更新操作对容量的影响
+        // uint32_t thisKeyVolume = queryValue.size(); // 用于统计当前key的容量
+        // int changeVolume = 0; // 用于统计当前key的容量变化
 
-        // 解析更新
-        for (int i=0; i<updates.size(); i++)
-        {
+        // // 解析更新
+        // for (int i=0; i<updates.size(); i++)
+        // {
             
-            ::Update &update = updates[i];
-            cout << "update: " << update.op << " " << update.value << endl;
+        //     ::Update &update = updates[i];
+        //     cout << "update: " << update.op << " " << update.value << endl;
             
 
-            switch (update.op)
-            {
-            case OP_DELETE:
-                // 找到目标value并删除即可
-                for (int i = 0; i < queryValue.size(); i++)
-                {
-                    if (strcmp(queryValue[i].c_str(), update.value) == 0)
-                    {
-                        queryValue.erase(queryValue.begin() + i);
-                        break;
-                    }
-                }
-                // 调整该关键字的容量
-                changeVolume--;
-                break;
-            case OP_INSERT:
-                // 首先判断容量是否已经超过最大值，如果是，那么上传更新并调整最大容量
-                if (thisKeyVolume + changeVolume > curMaxVolume)
-                {
-                    Update(key, update);
-                } else {
-                    // 否则，直接将更新插入到queryValue中
-                    queryValue.push_back(update.value);
-                }
-                changeVolume++;
-                break;
-            default:
-                cout << "【ERROR】Undefined Operation!!!";
-                break;
-            }
-        }
+        //     switch (update.op)
+        //     {
+        //     case OP_DELETE:
+        //         // 找到目标value并删除即可
+        //         for (int i = 0; i < queryValue.size(); i++)
+        //         {
+        //             if (strcmp(queryValue[i].c_str(), update.value) == 0)
+        //             {
+        //                 queryValue.erase(queryValue.begin() + i);
+        //                 break;
+        //             }
+        //         }
+        //         // 调整该关键字的容量
+        //         changeVolume--;
+        //         break;
+        //     case OP_INSERT:
+        //         // 首先判断容量是否已经超过最大值，如果是，那么上传更新并调整最大容量
+        //         if (thisKeyVolume + changeVolume > curMaxVolume)
+        //         {
+        //             UploadUpdate(key, update);
+        //         } else {
+        //             // 否则，直接将更新插入到queryValue中
+        //             queryValue.push_back(update.value);
+        //         }
+        //         changeVolume++;
+        //         break;
+        //     default:
+        //         cout << "【ERROR】Undefined Operation!!!";
+        //         break;
+        //     }
+        // }
 
-        int updateVolume = thisKeyVolume + changeVolume;
+        // int updateVolume = thisKeyVolume + changeVolume;
         
-        // 判断是否超过目前volumeNumArr的极限,是就进行扩容
-        if (updateVolume >= mCapacitySize)
-        {
-            ExpandVNArr();
-        }
+        // // 判断是否超过目前volumeNumArr的极限,是就进行扩容
+        // if (updateVolume >= mCapacitySize)
+        // {
+        //     ExpandVNArr();
+        // }
 
-        volumeNumArr[thisKeyVolume]--;
-        volumeNumArr[updateVolume]++;
-        // 调整l
+        // volumeNumArr[thisKeyVolume]--;
+        // volumeNumArr[updateVolume]++;
+        // // 调整l
         
-        if (updateVolume > curMaxVolume)
-        {
-            // 触发l变大  ** 变大后, counter超过之前l的元素需要提交给update list
-            bemm->setMaxVolume(updateVolume);
-        } else if (thisKeyVolume == curMaxVolume && volumeNumArr[thisKeyVolume] == 0)
-        {
-            // l 变小
-            for (int i = curMaxVolume; i > 0; i--)
-            {
-                if (volumeNumArr[i] != 0)
-                {
-                    bemm->setMaxVolume(i);
-                    break;
-                }
-            }
-        }
-        /**************************************** 判断并收缩EMM中元素至符合当前容量 ****************************************/
-        // 调整EMMst
-        SubmitUpdate(key);
+        // if (updateVolume > curMaxVolume)
+        // {
+        //     // 触发l变大  ** 变大后, counter超过之前l的元素需要提交给update list
+        //     bemm->setMaxVolume(updateVolume);
+        // } else if (thisKeyVolume == curMaxVolume && volumeNumArr[thisKeyVolume] == 0)
+        // {
+        //     // l 变小
+        //     for (int i = curMaxVolume; i > 0; i--)
+        //     {
+        //         if (volumeNumArr[i] != 0)
+        //         {
+        //             bemm->setMaxVolume(i);
+        //             break;
+        //         }
+        //     }
+        // }
+        // /**************************************** 判断并收缩EMM中元素至符合当前容量 ****************************************/
+        // // 调整EMMst
+        // SubmitUpdate(key);
     }
 
     /**
@@ -421,29 +425,16 @@ public:
     {
         size_t size = 0;
         cout << "==================================================================" << endl;
-        cout << "--------------------------------Client----------------------------" << endl;
-
-        for (const auto &pair : (*EMMst))
-        {
-            size += pair.first.length();
-            size += sizeof(uint32_t) * 3;
-        }
-        cout << "EMMst:" << size << endl;
-        // volumeNumArr大小
-        size_t volumeNumArrSize = sizeof(uint32_t) * volumeNumArr[0];
-        cout << "volumeNumArr:" << volumeNumArrSize << endl;
-        size += volumeNumArrSize;
-
-        cout << "others" << sizeof(Client) << endl;
-        size += sizeof(Client);
-
-        cout << "sum" << size << endl;
-        // 调用函数统计服务端
+        cout << "--------------------------------Server----------------------------" << endl;
         size += this->bemm->getMemOverhead();
-        cout << "-----------------------------------------------------------------" << endl;
+        cout << "----------------------------------Client-------------------------------" << endl;
         cout << "CS总占用空间:" << getMemSizeStr(size) << endl;
         cout << "==================================================================" << endl;
         return size;
+    }
+
+    int getExtendCount() {
+        return this->bemm->getExtendCount();
     }
 };
 #endif

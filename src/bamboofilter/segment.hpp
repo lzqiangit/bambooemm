@@ -354,6 +354,7 @@ public:
         total_size = chain_num * chain_capacity * bucket_size + safe_pad;
         data_base = new char[total_size];
         memset(data_base, 0, (chain_num * chain_capacity * bucket_size));
+
         temp = new char[safe_pad_simd + (2 * chain_capacity * bucket_size + 23) / 24 * 24 + safe_pad_simd]; // temp前填充 safepad 的4byte   *2：两个候选桶
         // 初始化value_set
         value_set = new ValueEntry*[getTagNum()];
@@ -661,10 +662,10 @@ public:
             valSize += value_set[i]->getMemOverhead();
         }
         overhead += valSize;
-        // 统计其他元素的大小
+        // // 统计其他元素的大小
         overhead += sizeof(Segment);
 
-        cout << "\t\t" << id << "\t" << chain_num << "\t" << chain_capacity << "\t" << getMemSizeStr(keySize) << "\t" << getMemSizeStr(valPSize) << "\t" << getMemSizeStr(valSize) << "\t" << getMemSizeStr(overhead) << endl;
+        //cout << "\t\t" << id << "\t" << chain_num << "\t" << chain_capacity << "\t" << getMemSizeStr(keySize) << "\t" << getMemSizeStr(valPSize) << "\t" << getMemSizeStr(valSize) << "\t" << getMemSizeStr(overhead) << endl;
         
         return overhead;
     }

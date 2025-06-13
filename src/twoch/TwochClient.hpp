@@ -94,21 +94,19 @@ public:
      * @return vector<KV> 查询结果
      * 查询两条路径上的元素以及溢出栈中的元素
      */
-    vector<string> Query(const char *key)
+    double Query(const char *key)
     {
         uint32_t fk = getFK(key, strlen(key));
 
-        Timer::getInstance().start();
         queryRet = mTwoch->Query(fk);
-        Timer::getInstance().stop();
         // 计算返回结果大小
         size_t querySize = 0;
         for (auto qr : queryRet)
         {
             querySize += qr.len;
         }
-        mCsvData.push_back(make_pair(querySize, Timer::getInstance().getDuration()));
-
+        
+        Timer::getInstance().start();
         ResolveQueryList(key);
 
         uint32_t cnt = 0;
@@ -120,9 +118,12 @@ public:
                 CoalesceUpdate(key, cnt);
             }
         }
+        Timer::getInstance().stop();
+        return Timer::getInstance().getDuration();
+        //cout << "融合时间:" << Timer::getInstance().getDuration() << endl;
 
         
-        return queryValue;
+        // return queryValue;
     }
 
     /**
@@ -131,7 +132,7 @@ public:
      * @param op 操作符
      * @param kcv 需要更新的kv
      */
-    void Update(const char *key, const Update& update)
+    void UploadUpdate(const char *key, const Update& update)
     {
         // 在st中找不到key,需要初始化
         if (EMMst->find(key) == EMMst->end())
@@ -142,12 +143,18 @@ public:
         // 获取y
         uint32_t y = GetYHash(x, (*EMMst)[key][1]);     // TODO
         // 获取Update
-        UpdateEntry UpdateEntry = update.toUpdateEntry(mPassword);
         
         ++(*EMMst)[key][ST_SUBMIT_TIMES];
         // 上传服务器
         // 注意记录counter
-        mTwoch->AddUpdata(y, UpdateEntry);
+        vector<UpdateEntry> updateVec;
+        UpdateEntry updateEntry = update.toUpdateEntry(mPassword);
+        updateVec.push_back(updateEntry);
+        ::Update padUpdate;
+        for (int i=1; i<mTwoch->getMaxVolume(); i++) {
+            updateVec.push_back(padUpdate.toUpdateEntry(mPassword));
+        }
+        mTwoch->AddUpdata(y, updateVec);
     }
 
 private:
@@ -233,91 +240,93 @@ private:
     void CoalesceUpdate(const char *key, uint32_t cnt) {
         // 获取更新并解析
         uint32_t x = GetXHash(key);
-        vector<UpdateEntry> ues = mTwoch->GetUpdataList(x, cnt);
+        vector<vector<UpdateEntry>> uesV = mTwoch->GetUpdataList(x, cnt);
         // 调整EMMst
         (*EMMst)[key][ST_SUBMIT_TIMES] = 0;
         (*EMMst)[key][ST_COALESCE_TIMES]++;
         // 解析更新
         vector<::Update> updates;
+        vector<UpdateEntry> ues = uesV[0]; // 只取第一条更新
         for (auto ue : ues) {
             updates.push_back(ue.toUpdate(mPassword));
         }
-        // 定义辅助变量
-        uint32_t curMaxVolume = mTwoch->getMaxVolume(); // 用于统计更新操作对容量的影响
-        uint32_t thisKeyVolume = queryValue.size(); // 用于统计当前key的容量
-        int changeVolume = 0; // 用于统计当前key的容量变化
 
-        // 解析更新
-        for (int i=0; i<updates.size(); i++)
-        {
+        // // 定义辅助变量
+        // uint32_t curMaxVolume = mTwoch->getMaxVolume(); // 用于统计更新操作对容量的影响
+        // uint32_t thisKeyVolume = queryValue.size(); // 用于统计当前key的容量
+        // int changeVolume = 0; // 用于统计当前key的容量变化
+
+        // // 解析更新
+        // for (int i=0; i<updates.size(); i++)
+        // {
             
-            ::Update &update = updates[i];
-            cout << "update: " << update.op << " " << update.value << endl;
+        //     ::Update &update = updates[i];
+            
             
 
-            switch (update.op)
-            {
-            case OP_DELETE:
-                // 找到目标value并删除即可
-                for (int i = 0; i < queryValue.size(); i++)
-                {
-                    if (strcmp(queryValue[i].c_str(), update.value) == 0)
-                    {
-                        queryValue.erase(queryValue.begin() + i);
-                        break;
-                    }
-                }
-                // 调整该关键字的容量
-                changeVolume--;
-                break;
-            case OP_INSERT:
-                // 首先判断容量是否已经超过最大值，如果是，那么上传更新并调整最大容量
-                if (thisKeyVolume + changeVolume > curMaxVolume)
-                {
-                    Update(key, update);
-                } else {
-                    // 否则，直接将更新插入到queryValue中
-                    queryValue.push_back(update.value);
-                }
-                changeVolume++;
-                break;
-            default:
-                cout << "【ERROR】Undefined Operation!!!";
-                break;
-            }
-        }
+        //     switch (update.op)
+        //     {
+        //     case OP_DELETE:
+        //         // 找到目标value并删除即可
+        //         for (int i = 0; i < queryValue.size(); i++)
+        //         {
+        //             if (strcmp(queryValue[i].c_str(), update.value) == 0)
+        //             {
+        //                 queryValue.erase(queryValue.begin() + i);
+        //                 break;
+        //             }
+        //         }
+        //         // 调整该关键字的容量
+        //         changeVolume--;
+        //         break;
+        //     case OP_INSERT:
+        //         // 首先判断容量是否已经超过最大值，如果是，那么上传更新并调整最大容量
+        //         if (thisKeyVolume + changeVolume > curMaxVolume)
+        //         {
+        //             UploadUpdate(key, update);
+        //         } else {
+        //             // 否则，直接将更新插入到queryValue中
+        //             queryValue.push_back(update.value);
+        //         }
+        //         changeVolume++;
+        //         break;
+        //     default:
+        //         cout << "【ERROR】Undefined Operation!!!";
+        //         break;
+        //     }
+        // }
 
-        int updateVolume = thisKeyVolume + changeVolume;
+        // int updateVolume = thisKeyVolume + changeVolume;
         
-        // 判断是否超过目前volumeNumArr的极限,是就进行扩容
-        if (updateVolume >= mCapacitySize)
-        {
-            ExpandVNArr();
-        }
+        // // 判断是否超过目前volumeNumArr的极限,是就进行扩容
+        // if (updateVolume >= mCapacitySize)
+        // {
+        //     ExpandVNArr();
+        // }
 
-        volumeNumArr[thisKeyVolume]--;
-        volumeNumArr[updateVolume]++;
-        // 调整l
+        // volumeNumArr[thisKeyVolume]--;
+        // volumeNumArr[updateVolume]++;
+        // // 调整l
         
-        if (updateVolume > curMaxVolume)
-        {
-            // 触发l变大  ** 变大后, counter超过之前l的元素需要提交给update list
-            mTwoch->setMaxVolume(updateVolume);
-        } else if (thisKeyVolume == curMaxVolume && volumeNumArr[thisKeyVolume] == 0)
-        {
-            // l变小
-            for (int i = curMaxVolume; i > 0; i--)
-            {
-                if (volumeNumArr[i] != 0)
-                {
-                    mTwoch->setMaxVolume(i);
-                    break;
-                }
-            }
-        }
-        /**************************************** 判断并收缩EMM中元素至符合当前容量 ****************************************/
-        // 调整EMMst
-        SubmitUpdate(key);
+        // if (updateVolume > curMaxVolume)
+        // {
+        //     // 触发l变大  ** 变大后, counter超过之前l的元素需要提交给update list
+        //     mTwoch->setMaxVolume(updateVolume);
+        // } else if (thisKeyVolume == curMaxVolume && volumeNumArr[thisKeyVolume] == 0)
+        // {
+        //     // l变小
+        //     for (int i = curMaxVolume; i > 0; i--)
+        //     {
+        //         if (volumeNumArr[i] != 0)
+        //         {
+        //             mTwoch->setMaxVolume(i);
+        //             break;
+        //         }
+        //     }
+        // }
+        // /**************************************** 判断并收缩EMM中元素至符合当前容量 ****************************************/
+        // // 调整EMMst
+        // SubmitUpdate(key);
     }
 
     /**
@@ -403,12 +412,34 @@ private:
         delete[] volumeNumArr;
         volumeNumArr = newVNA;
     }
+
+public:
+    size_t getMemOverHead()
+    {
+        size_t size = 0;
+        cout << "==================================================================" << endl;
+        size += this->mTwoch->getMemOverhead();
+        cout << "-----------------------------------------------------------------" << endl;
+        // 计算溢出栈mOverflowStack中所有KV的总大小
+        size_t overflowSize = 0;
+        for (auto &pair : mOverflowStack)
+        {
+            for (auto &kv : pair.second)
+            {
+                overflowSize += kv.getMemOverhead();
+            }
+        }
+
+        cout << "溢出栈总空间:" << getMemSizeStr(overflowSize) << endl;
+
+        cout << "==================================================================" << endl;
+        return size;
+    }
 private:
     const char* concatInt(int a, int b) {
         string str = to_string(a) + "|" + to_string(b);
         return copy_const_str(str.c_str());
     }
-
 };
 
 #endif

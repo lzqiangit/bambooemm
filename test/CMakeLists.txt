@@ -29,3 +29,13 @@ add_executable(testutils testutils.cpp ${COMMON_CPP})
 target_include_directories(testutils PUBLIC ${HEADPATH} ${OPENSSL_INCLUDE_DIR})
 target_link_libraries(testutils PUBLIC mysqlclient ${OPENSSL_LIBRARIES} ${XXHASH_LIB})
 target_compile_options(testutils PUBLIC "-mavx2")
+
+add_executable(ubemm update_bemm.cpp ${COMMON_CPP})
+target_include_directories(ubemm PUBLIC ${HEADPATH} ${OPENSSL_INCLUDE_DIR})
+target_link_libraries(ubemm PUBLIC mysqlclient ${OPENSSL_LIBRARIES} ${XXHASH_LIB})
+target_compile_options(ubemm PUBLIC "-mavx2")
+
+add_executable(utwoch update_twoch.cpp ${COMMON_CPP})
+target_include_directories(utwoch PUBLIC ${HEADPATH} ${OPENSSL_INCLUDE_DIR})
+target_link_libraries(utwoch PUBLIC mysqlclient ${OPENSSL_LIBRARIES} ${XXHASH_LIB})
+target_compile_options(utwoch PUBLIC "-mavx2")

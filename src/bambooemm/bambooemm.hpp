@@ -201,32 +201,20 @@ public:
         size_t mySize = 0;
 
         cout << "-----------------------------Server-------------------------------" << endl;
-        // Emmu指针
-        size_t emmUMemSize = sizeof(UpdateEntry *) * EMMU_SIZE;
-        cout << "emmu(指针):" << getMemSizeStr(emmUMemSize) << endl;
-        mySize += emmUMemSize;
-        // updata
-        size_t upMemSize = 0;
-        for (int i = 0; i < EMMU_SIZE; i++)
-        {
-            if (EMMu[i] != nullptr)
-            {
-                upMemSize += EMMu[i]->getMemOverhead();
-            }
-        }
-        cout << "updata(元素):" << getMemSizeStr(upMemSize) << endl;
-        mySize += upMemSize;
-        // 获取bamboo的空间
+
+    
         size_t bfMemSize = bf->getMemOverhead();
         cout << "Bamboo:" << getMemSizeStr(bfMemSize) << endl;
         mySize += bfMemSize;
-        // 获取其他元素
-        size_t otherMemSize = sizeof(BambooEMM);
-        cout << "others:" << getMemSizeStr(otherMemSize) << endl;
-        mySize += otherMemSize;
-        // 输出总的
+        mySize += sizeof(BambooEMM);
+
         cout << "Server总空间:" << getMemSizeStr(mySize) << endl;
         return mySize;
+    }
+
+    int getExtendCount()
+    {
+        return bf->extend_count;
     }
 
 };

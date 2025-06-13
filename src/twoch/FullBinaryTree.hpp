@@ -141,6 +141,15 @@ private:
         return false;
     }
 
+public:
+    size_t getMemOverhead() {
+        size_t size = 0;
+        for (int i=0; i<mNodeCount; i++) {
+            size += mValueEntries[i].getMemOverhead();
+        }
+        size += sizeof(FullBinaryTree);
+        return size;
+    }
 
 };
 

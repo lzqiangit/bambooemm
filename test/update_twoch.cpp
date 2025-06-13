@@ -2,7 +2,7 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
-#include "client.hpp"
+#include "TwochClient.hpp"
 using namespace std;
 
 void ShowKVList(string key, vector<string> vals) {
@@ -19,7 +19,7 @@ void ShowKVList(string key, vector<string> vals) {
 }
 
 int n, l;
-Client *client;
+TwochClient *client;
 
 void Init() {
     vector<KV *> kvList;
@@ -28,34 +28,45 @@ void Init() {
     cout << "成功导入!!! (" << n << "条数据" << ",最大容量为:" << l << ")"<< endl;
 
     cout << "初始化EMM..." << endl;
-    client = new Client();
+    client = new TwochClient();
 
-    Timer::getInstance().start();
     client->SetupEMM(kvList, n, l);
-    Timer::getInstance().stop();
-    // 计算存储空间
-    client->getMemOverHead();
-    cout << "Bamboo初始化耗时:" << Timer::getInstance().getDuration() << endl;
 
-    cout << "初始化完成!!!" << endl;
+    cout << "TwoCh初始化耗时:" << Timer::getInstance().getDuration() << endl;
+    // 计算存储空间
+
     // 清除kvList
     for (auto kv : kvList) {
         delete kv;
     }
-
-     kvList.clear();
+    kvList.clear();
 }
 
 int main() {
 
     Init();
 
-    vector<pair<int, double>> timeList;
-    for (int i=0; i<=2036; i++) {    // TODO
+    Update update = Update('I', "new_value", 9);
+
+    int times = 14;
+    double uploadTime = 0;
+    double queryTime = 0;
+ 
+    for (int i=0; i<=times; i++) {
         string key = "key_" + to_string(i);
-        client->Query(key.c_str());
+        Timer::getInstance().start();
+        client->UploadUpdate(key.c_str(), update);
+        Timer::getInstance().stop();
+        uploadTime += Timer::getInstance().getDuration();
+
+        queryTime += client->Query(key.c_str());
     }
-    SaveToCSV(client->mCsvData, "setup_init_size_11.csv", "key,time"); // TODO
+    cout << "上传耗时:" << uploadTime/times << endl;
+    cout << "融合耗时:" << queryTime/times << endl;
+    
+
+    // ret = client->Query(key);
+    // ShowKVList(key, ret);
 
     delete client;
     return 0;

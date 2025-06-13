@@ -95,6 +95,8 @@ public:
      */
     static vector<KV> LoadKVList(vector<char*> kvStrList);
 
+    size_t getMemOverhead() const;
+
 private:
     char* copy_const_str(const char* cstr);
     int LenOfInt(int num);

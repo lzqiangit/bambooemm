@@ -29,8 +29,14 @@ void Init() {
 
     cout << "初始化EMM..." << endl;
     client = new TwochClient();
+
+    Timer::getInstance().start();
     client->SetupEMM(kvList, n, l);
-    cout << "初始化完成!!!" << endl;
+    Timer::getInstance().stop();
+    client->getMemOverHead();
+    cout << "TwoCh初始化耗时:" << Timer::getInstance().getDuration() << endl;
+    // 计算存储空间
+
     // 清除kvList
     for (auto kv : kvList) {
         delete kv;
@@ -42,12 +48,12 @@ int main() {
 
     Init();
 
-    vector<pair<size_t, double>> timeList;
-    for (int i=0; i<=267; i++) {        // TODO
-        string key = "key_" + to_string(i);
-        client->Query(key.c_str());
-    }
-    SaveToCSV(client->mCsvData, "query_twoch_n22_l15.csv", "key,time"); // TODO
+    // vector<pair<size_t, double>> timeList;
+    // for (int i=0; i<=8167; i++) {        // TODO
+    //     string key = "key_" + to_string(i);
+    //     client->Query(key.c_str());
+    // }
+    // SaveToCSV(client->mCsvData, "query_twoch_n22_l7.csv", "key,time"); // TODO
 
     delete client;
     return 0;

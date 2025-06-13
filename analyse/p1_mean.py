@@ -6,8 +6,8 @@ matplotlib.use("TkAgg")
 plt.rcParams['font.sans-serif'] = ['SimHei']  # 指定默认字体为黑体
 plt.rcParams['axes.unicode_minus'] = False  # 解决保存图像是负号'-'显示为方块的问题
 
-bamboo = pd.read_csv('analyse/csv/query_bamboo_n22_l15.csv') # TODO
-twoch = pd.read_csv('analyse/csv/query_twoch_n22_l15.csv')   # TODO
+bamboo = pd.read_csv('analyse/csv/query_bamboo_n22_l7.csv') # TODO
+twoch = pd.read_csv('analyse/csv/query_twoch_n22_l7.csv')   # TODO
 
 # 计算bamboo第二列元素的平均值
 size = bamboo.iloc[:, 0]
